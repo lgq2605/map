@@ -114,7 +114,11 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
 
   return (
     <div className="relative h-full">
-      <div ref={el} className={'relative z-0 w-full bg-navy ' + (panel ? 'h-[42%] md:h-full' : 'h-full')} />
+      {/* Đổi chiều cao ở div bọc ngoài. Div của Leaflet (ref={el}) phải có className CỐ ĐỊNH: nếu React ghi đè className,
+          các class Leaflet tự thêm (leaflet-container, ...) bị xoá và ô bản đồ co về 0px do Tailwind (img { max-width: 100% }). */}
+      <div className={'relative z-0 w-full ' + (panel ? 'h-[42%] md:h-full' : 'h-full')}>
+        <div ref={el} className="h-full w-full bg-navy" />
+      </div>
       {failed && <div className="absolute left-1/2 top-20 z-20 w-[min(90%,32rem)] -translate-x-1/2 rounded-lg bg-navy/90 px-4 py-2 text-center text-sm text-gold">Không tải được ảnh bản đồ nền. Hãy kiểm tra mạng, tắt VPN hoặc trình chặn quảng cáo rồi tải lại trang.</div>}
       {scene === 'menu' && <ChoiceModal onPick={setScene} />}
       {scene === 'hue' && <NguyenHueScene onBack={back} />}

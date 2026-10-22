@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@theme {
+  --font-serif: "Playfair Display", serif;
+  --font-sans: Inter, sans-serif;
+  --color-navy: #0a0e27;
+  --color-vred: #da251d;
+  --color-gold: #ffcd00;
+  --color-paper: #f5f0e1;
+}
+html, body, #root { height: 100%; margin: 0; background: #0a0e27; color: #f5f0e1; font-family: Inter, sans-serif; overflow: hidden; overscroll-behavior: none; }
+.glow { text-shadow: 0 0 18px #ffcd0099; }
+.pulse { width: 22px; height: 22px; border-radius: 50%; background: #ffcd00; box-shadow: 0 0 0 0 #ffcd00aa; animation: pulse 1.6s infinite; transform: translate(-50%, -50%); }
+.pulse.red { background: #da251d; box-shadow: 0 0 0 0 #da251daa; }
+@keyframes pulse { to { box-shadow: 0 0 0 28px transparent; } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+.march { animation: march 1s linear infinite; }
+@keyframes march { to { stroke-dashoffset: -16; } }
+@media (prefers-reduced-motion: reduce) { .march { animation: none; } }

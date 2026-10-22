@@ -36,6 +36,21 @@ function makeBase(providers: L.TileLayer[], extra: L.Layer[], onFail: () => void
   return group
 }
 
+// Zoom từng bước (2 cấp mỗi lần) tới địa điểm: mỗi bước đều tải ảnh bản đồ, không "nhảy cóc" như flyTo.
+function glide(m: L.Map, c: L.LatLngTuple, z: number, seq: { current: number }, done: () => void) {
+  const id = ++seq.current
+  m.stop()
+  const go = () => {
+    if (id !== seq.current) return
+    const cur = m.getZoom()
+    if (cur === z) { m.once('moveend', done); m.panTo(c); return }
+    const next = Math.abs(z - cur) <= 2 ? z : cur + 2 * Math.sign(z - cur)
+    m.once('zoomend', () => setTimeout(go, 30))
+    m.setView(c, next, { animate: true })
+  }
+  go()
+}
+
 const pin = (label: string, cls = '', emoji = '', side: 'left' | 'right' = 'right') => L.divIcon({
   className: '', iconSize: [0, 0],
   html: `<div class="relative">${emoji ? `<div class="-translate-x-1/2 -translate-y-1/2 text-3xl">${emoji}</div>` : `<div class="pulse ${cls}"></div>`}<span class="absolute top-3 whitespace-nowrap rounded bg-navy/85 px-2 py-1 text-xs text-paper ${side === 'left' ? 'right-4' : 'left-4'}">${label}</span></div>`,
@@ -47,6 +62,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
   const layer = useRef<L.LayerGroup | null>(null)
   const base = useRef<{ sat: L.LayerGroup; street: L.LayerGroup; vn: L.GeoJSON } | null>(null)
   const [failed, setFailed] = useState(false)
+  const seq = useRef(0)
   const back = () => setScene('menu')
   const panel = scene === 'hue' || scene === 'du' || scene === 'namky'
 
@@ -71,11 +87,13 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     if (!m || !g || !b) return
     g.clearLayers()
     const f = FOCUS[scene]
-    m.invalidateSize()
+    m.invalidateSize({ animate: false })
     if (scene === 'hue' || scene === 'du') { m.removeLayer(b.sat); if (!m.hasLayer(b.street)) b.street.addTo(m) }
     else { m.removeLayer(b.street); if (!m.hasLayer(b.sat)) b.sat.addTo(m) }
     b.vn.setStyle(scene === 'menu' ? FILL : LINE)
-    m.flyTo(f.c, f.z, { duration: 1.5 })
+    const st = scene === 'hue' || scene === 'du'
+    // Cuối hành trình: vẽ lại các ô bản đồ ở góc nhìn cuối để chắc chắn không còn ô xám
+    glide(m, f.c, f.z, seq, () => (st ? b.street : b.sat).eachLayer(l => (l as L.TileLayer).redraw?.()))
     if (scene === 'menu') {
       // hai nhãn đặt hai phía (phải/trái) và hai điểm cách xa nhau để không chồng lên nhau
       L.marker([10.7769, 106.7009], { icon: pin('TP. Hồ Chí Minh — Nguyễn Huệ & Nguyễn Du', '', '', 'right') }).addTo(g)

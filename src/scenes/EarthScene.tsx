@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Globe, { type GlobeMethods } from 'react-globe.gl'
 import gsap from 'gsap'
+import { motion } from 'framer-motion'
 import { setMusic } from '../audio'
 import PaperPlane from '../components/PaperPlane'
 import { useTypewriter } from '../components/useTypewriter'
@@ -38,9 +39,17 @@ export default function EarthScene({ onDone }: { onDone: () => void }) {
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
         atmosphereColor="#ffcd00" atmosphereAltitude={0.22}
-        onGlobeReady={() => { const c = globe.current?.controls(); if (c) { c.autoRotate = true; c.autoRotateSpeed = 0.3; c.enableZoom = false } }}
+        onGlobeReady={() => {
+          // mỗi lần mở web, địa cầu hiện một mặt ngẫu nhiên
+          globe.current?.pointOfView({ lat: Math.random() * 100 - 40, lng: Math.random() * 360 - 180, altitude: 2.5 }, 0)
+          const c = globe.current?.controls(); if (c) { c.autoRotate = true; c.autoRotateSpeed = 0.3; c.enableZoom = false } }}
         onGlobeClick={(_c, e) => start(e)} />
-      <p className="pointer-events-none absolute bottom-10 w-full px-4 text-center font-serif text-base text-paper/80 glow md:text-xl">{hint.text}</p>
+      <div className={'pointer-events-none absolute inset-0 transition-opacity duration-700 ' + (plane ? 'opacity-0' : '')}>
+        <motion.h1 initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2 }}
+          className="absolute inset-x-0 top-[10%] px-4 text-center font-serif text-3xl font-extrabold text-gold glow md:text-6xl">1 cái tên, ngàn câu chuyện</motion.h1>
+        <p className="absolute bottom-10 w-full px-4 text-center font-serif text-base text-paper/80 glow md:text-xl">{hint.text}</p>
+        <span className="absolute bottom-3 right-4 text-[11px] text-paper/40">Gia Quân - 10CTin2 LHP</span>
+      </div>
       {plane && <PaperPlane from={plane} onNear={zoomIn} />}
       <div ref={veil} className="pointer-events-none absolute inset-0 z-30 bg-navy opacity-0" />
     </div>

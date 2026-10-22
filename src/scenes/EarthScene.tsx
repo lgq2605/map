@@ -41,7 +41,7 @@ export default function EarthScene({ onDone }: { onDone: () => void }) {
         onGlobeReady={() => { const c = globe.current?.controls(); if (c) { c.autoRotate = true; c.autoRotateSpeed = 0.3; c.enableZoom = false } }}
         onGlobeClick={(_c, e) => start(e)} />
       <p className="pointer-events-none absolute bottom-10 w-full px-4 text-center font-serif text-base text-paper/80 glow md:text-xl">{hint.text}</p>
-      {plane && <PaperPlane from={plane} onDone={zoomIn} />}
+      {plane && <PaperPlane from={plane} onNear={zoomIn} />}
       <div ref={veil} className="pointer-events-none absolute inset-0 z-30 bg-navy opacity-0" />
     </div>
   )

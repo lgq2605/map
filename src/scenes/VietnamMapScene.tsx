@@ -4,6 +4,7 @@ import gsap from 'gsap'
 import 'leaflet/dist/leaflet.css'
 import type { Scene } from '../data/types'
 import vietnam from '../data/vietnam.geo.json'
+import { loadGeo, FALLBACK_HUE, FALLBACK_SCHOOL, ROAD_HUE, ROAD_DU, type GeoResult } from '../data/geo'
 import ChoiceModal from '../components/ChoiceModal'
 import NguyenHueScene from './NguyenHueScene'
 import NguyenDuScene from './NguyenDuScene'
@@ -17,6 +18,10 @@ const FOCUS: Record<string, { c: L.LatLngTuple; z: number }> = {
 // Màn tổng quan: tô đỏ. Khi đã zoom vào khu vực: chỉ còn đường viền.
 const FILL = { color: '#da251d', weight: 2, fill: true, fillColor: '#da251d', fillOpacity: 0.28, opacity: 1 }
 const LINE = { color: '#ffcd00', weight: 2, fill: false, opacity: 0.9 }
+// Viền vùng Nam Kỳ dùng màu riêng (xanh lơ) để khác với viền quốc gia (vàng) và màu tô đỏ của bản đồ Việt Nam
+const AREA = '#00e5ff'
+// Đường được tô sáng: viền trắng bên dưới + lõi đỏ phát sáng để nổi bật trên bản đồ phố
+const ROAD = '#ff2d2d'
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
 
 const tl = (url: string, o: L.TileLayerOptions) => L.tileLayer(url, { maxZoom: 19, ...o })
@@ -63,6 +68,20 @@ const pin = (label: string, cls = '', emoji = '', side: 'left' | 'right' = 'righ
   html: `<div class="relative">${emoji ? `<div class="-translate-x-1/2 -translate-y-1/2 text-3xl">${emoji}</div>` : `<div class="pulse ${cls}"></div>`}<span class="absolute top-3 whitespace-nowrap rounded bg-navy/85 px-2 py-1 text-xs text-paper ${side === 'left' ? 'right-4' : 'left-4'}">${label}</span></div>`,
 })
 
+// Tô sáng đường của địa điểm đang xem (dữ liệu hình dạng đường lấy từ OpenStreetMap, xem data/geo.ts)
+function highlight(g: L.LayerGroup, sc: 'hue' | 'du', geo: GeoResult | null) {
+  const name = sc === 'hue' ? ROAD_HUE : ROAD_DU
+  let roads = (geo?.roads ?? []).filter(r => r.name === name)
+  if (!roads.length && sc === 'hue') roads = [{ name, pts: FALLBACK_HUE, area: false }]
+  roads.forEach(r => {
+    if (r.area) L.polygon(r.pts, { color: ROAD, weight: 3, fillColor: ROAD, fillOpacity: 0.22, className: 'road-glow' }).addTo(g)
+    else {
+      L.polyline(r.pts, { color: '#ffffff', weight: 11, opacity: 0.95, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(g)
+      L.polyline(r.pts, { color: ROAD, weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round', className: 'road-glow', interactive: false }).addTo(g)
+    }
+  })
+}
+
 export default function VietnamMapScene({ scene, setScene }: { scene: Scene; setScene: (s: Scene) => void }) {
   const el = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
@@ -70,6 +89,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
   const base = useRef<{ sat: L.LayerGroup; street: L.LayerGroup; vn: L.GeoJSON } | null>(null)
   const [failed, setFailed] = useState(false)
   const tween = useRef<gsap.core.Tween | null>(null)
+  const geo = useRef<GeoResult | null>(null)
   const back = () => setScene('menu')
   const panel = scene === 'hue' || scene === 'du' || scene === 'namky'
 
@@ -86,6 +106,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     layer.current = L.layerGroup().addTo(m)
     base.current = { sat, street, vn }
     map.current = m
+    loadGeo().then(r => { geo.current = r }) // tải trước hình dạng đường và vị trí trường trong lúc người dùng ở màn hình chọn
     return () => { tween.current?.kill(); m.remove() }
   }, [])
 
@@ -99,17 +120,40 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     else { m.removeLayer(b.street); if (!m.hasLayer(b.sat)) b.sat.addTo(m) }
     b.vn.setStyle(scene === 'menu' ? FILL : LINE)
     const st = scene === 'hue' || scene === 'du'
+    // Đích của "du" là vị trí thật của trường (nếu đã tải được), không phải toạ độ gõ tay
+    const school = () => (scene === 'du' ? geo.current?.school ?? FALLBACK_SCHOOL : null)
     // Cuối hành trình: vẽ lại các ô bản đồ ở góc nhìn cuối để chắc chắn không còn ô xám
-    glide(m, f.c, f.z, tween, () => (st ? b.street : b.sat).eachLayer(l => (l as L.TileLayer).redraw?.()))
+    glide(m, school() ?? f.c, f.z, tween, () => {
+      (st ? b.street : b.sat).eachLayer(l => (l as L.TileLayer).redraw?.())
+      const s = school() // dữ liệu có thể về muộn hơn lúc bắt đầu bay: căn lại cho đúng trường
+      if (s && m.getCenter().distanceTo(s) > 5) m.flyTo(s, f.z, { duration: 0.8 })
+    })
     if (scene === 'menu') {
       // hai nhãn đặt hai phía (phải/trái) và hai điểm cách xa nhau để không chồng lên nhau
       L.marker([10.7769, 106.7009], { icon: pin('TP. Hồ Chí Minh — Nguyễn Huệ & Nguyễn Du', '', '', 'right') }).addTo(g)
       L.marker([9.6, 105.3], { icon: pin('Nam Kỳ Khởi Nghĩa — Nam Bộ', 'red', '', 'left') }).addTo(g)
-      L.rectangle(NAMBO, FILL).addTo(g)
+      L.rectangle(NAMBO, { color: AREA, weight: 2, fillColor: AREA, fillOpacity: 0.14 }).addTo(g)
     }
-    if (scene === 'namky') L.rectangle(NAMBO, { color: '#ffcd00', weight: 3, fill: false, dashArray: '8 8', className: 'march' }).addTo(g)
-    if (scene === 'hue') L.marker(FOCUS.hue.c, { icon: pin('Đường Nguyễn Huệ') }).addTo(g)
-    if (scene === 'du') L.marker(FOCUS.du.c, { icon: pin('THCS & THPT Trần Đại Nghĩa — 53 Nguyễn Du', '', '🏫') }).addTo(g)
+    if (scene === 'namky') L.rectangle(NAMBO, { color: AREA, weight: 3, fill: false, dashArray: '8 8', className: 'march' }).addTo(g)
+    let alive = true
+    if (scene === 'hue' || scene === 'du') {
+      const sc = scene
+      const show = (r: GeoResult | null) => {
+        g.clearLayers()
+        highlight(g, sc, r)
+        if (sc === 'hue') L.marker(FOCUS.hue.c, { icon: pin('Đường Nguyễn Huệ') }).addTo(g)
+        const pos = r?.school ?? FALLBACK_SCHOOL
+        if (sc === 'du' && pos) L.marker(pos, { icon: pin('THCS & THPT Trần Đại Nghĩa — 53 Nguyễn Du', '', '🏫', 'left') }).addTo(g)
+      }
+      show(geo.current)
+      if (!geo.current) loadGeo().then(r => {
+        if (!alive || !r) return
+        geo.current = r
+        show(r)
+        if (sc === 'du' && r.school && !tween.current?.isActive()) m.flyTo(r.school, f.z, { duration: 0.8 })
+      })
+    }
+    return () => { alive = false }
   }, [scene])
 
   return (

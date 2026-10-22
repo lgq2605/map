@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
+import gsap from 'gsap'
 import 'leaflet/dist/leaflet.css'
 import type { Scene } from '../data/types'
 import vietnam from '../data/vietnam.geo.json'
@@ -36,19 +37,25 @@ function makeBase(providers: L.TileLayer[], extra: L.Layer[], onFail: () => void
   return group
 }
 
-// Zoom từng bước (2 cấp mỗi lần) tới địa điểm: mỗi bước đều tải ảnh bản đồ, không "nhảy cóc" như flyTo.
-function glide(m: L.Map, c: L.LatLngTuple, z: number, seq: { current: number }, done: () => void) {
-  const id = ++seq.current
-  m.stop()
-  const go = () => {
-    if (id !== seq.current) return
-    const cur = m.getZoom()
-    if (cur === z) { m.once('moveend', done); m.panTo(c); return }
-    const next = Math.abs(z - cur) <= 2 ? z : cur + 2 * Math.sign(z - cur)
-    m.once('zoomend', () => setTimeout(go, 30))
-    m.setView(c, next, { animate: true })
-  }
-  go()
+// Zoom liên tục và mượt (không "nhảy"): zoom kéo dài theo số cấp, điểm đích trôi dần về tâm màn hình.
+// Mỗi khung hình đều cập nhật bản đồ nên các ô bản đồ được tải dần theo từng cấp.
+function glide(m: L.Map, c: L.LatLngTuple, z: number, tween: { current: gsap.core.Tween | null }, done: () => void) {
+  tween.current?.kill()
+  const z0 = m.getZoom(), P = L.latLng(c)
+  if (Math.abs(z - z0) < 0.01) { m.panTo(P); return }
+  const zr = Math.min(z0, z), zoomIn = z > z0
+  const A = m.project(m.getCenter(), zr), B = m.project(P, zr)
+  const fixed = zoomIn ? B : A, moving = zoomIn ? A : B
+  const o = { t: 0 }
+  tween.current = gsap.to(o, {
+    t: 1, duration: Math.min(5, 0.6 + 0.35 * Math.abs(z - z0)), ease: 'power2.inOut',
+    onUpdate: () => {
+      const zt = z0 + (z - z0) * o.t
+      const k = 2 ** (zr - zt)
+      m.setView(m.unproject(fixed.add(moving.subtract(fixed).multiplyBy(k)), zr), zt, { animate: false })
+    },
+    onComplete: () => { m.setView(P, z, { animate: false }); done() },
+  })
 }
 
 const pin = (label: string, cls = '', emoji = '', side: 'left' | 'right' = 'right') => L.divIcon({
@@ -62,12 +69,12 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
   const layer = useRef<L.LayerGroup | null>(null)
   const base = useRef<{ sat: L.LayerGroup; street: L.LayerGroup; vn: L.GeoJSON } | null>(null)
   const [failed, setFailed] = useState(false)
-  const seq = useRef(0)
+  const tween = useRef<gsap.core.Tween | null>(null)
   const back = () => setScene('menu')
   const panel = scene === 'hue' || scene === 'du' || scene === 'namky'
 
   useEffect(() => {
-    const m = L.map(el.current!, { zoomControl: false, maxZoom: 19 }).setView([16, 107.8], 2)
+    const m = L.map(el.current!, { zoomControl: false, maxZoom: 19, zoomSnap: 0 }).setView([16, 107.8], 2)
     const onFail = () => setFailed(true)
     // Ảnh vệ tinh (maxNativeZoom 16: zoom sâu hơn thì phóng to ảnh, không bị ô xám "chưa có dữ liệu")
     const sat = makeBase([
@@ -79,7 +86,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     layer.current = L.layerGroup().addTo(m)
     base.current = { sat, street, vn }
     map.current = m
-    return () => { m.remove() }
+    return () => { tween.current?.kill(); m.remove() }
   }, [])
 
   useEffect(() => {
@@ -93,7 +100,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     b.vn.setStyle(scene === 'menu' ? FILL : LINE)
     const st = scene === 'hue' || scene === 'du'
     // Cuối hành trình: vẽ lại các ô bản đồ ở góc nhìn cuối để chắc chắn không còn ô xám
-    glide(m, f.c, f.z, seq, () => (st ? b.street : b.sat).eachLayer(l => (l as L.TileLayer).redraw?.()))
+    glide(m, f.c, f.z, tween, () => (st ? b.street : b.sat).eachLayer(l => (l as L.TileLayer).redraw?.()))
     if (scene === 'menu') {
       // hai nhãn đặt hai phía (phải/trái) và hai điểm cách xa nhau để không chồng lên nhau
       L.marker([10.7769, 106.7009], { icon: pin('TP. Hồ Chí Minh — Nguyễn Huệ & Nguyễn Du', '', '', 'right') }).addTo(g)

@@ -4,7 +4,7 @@ import { nguyenHue } from '../data/nguyenHue'
 
 const LL = '10.7743,106.7038'
 export default function NguyenHueScene({ onBack }: { onBack: () => void }) {
-  const [open, setOpen] = useState(() => matchMedia('(min-width: 768px)').matches)
+  const [open, setOpen] = useState(false) // không tự bật: người xem bấm nút 👁️ Street View mới mở
   const pos = 'absolute left-2 top-16 z-20 md:bottom-4 md:left-4 md:top-auto'
   return (
     <>

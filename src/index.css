@@ -6,8 +6,9 @@
   --color-vred: #da251d;
   --color-gold: #ffcd00;
   --color-paper: #f5f0e1;
+  --bg-radial: radial-gradient(ellipse at 50% 45%, #1a1f3a 0%, #0a0e27 55%, #04060f 100%);
 }
-html, body, #root { height: 100%; margin: 0; background: #0a0e27; color: #f5f0e1; font-family: Inter, sans-serif; overflow: hidden; overscroll-behavior: none; }
+html, body, #root { height: 100%; margin: 0; background: #0a0e27 var(--bg-radial) no-repeat fixed; color: #f5f0e1; font-family: Inter, sans-serif; overflow: hidden; overscroll-behavior: none; }
 .glow { text-shadow: 0 0 18px #ffcd0099; }
 .pulse { width: 22px; height: 22px; border-radius: 50%; background: #ffcd00; box-shadow: 0 0 0 0 #ffcd00aa; animation: pulse 1.6s infinite; transform: translate(-50%, -50%); }
 .pulse.red { background: #da251d; box-shadow: 0 0 0 0 #da251daa; }
@@ -28,9 +29,80 @@ html, body, #root { height: 100%; margin: 0; background: #0a0e27; color: #f5f0e1
   pointer-events: none;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
 }
-.leaflet-container { background: #0a0e27 !important; }
+.leaflet-container { background: #0a0e27 var(--bg-radial) !important; }
 .leaflet-container img.leaflet-tile { mix-blend-mode: normal !important; }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 .march { animation: march 1s linear infinite; }
 @keyframes march { to { stroke-dashoffset: -16; } }
 @media (prefers-reduced-motion: reduce) { .march { animation: none; } }
+
+/* ================= BƯỚC 1: lớp nền nhiều tầng (xem components/SceneFX.tsx) =================
+   Layer 1 gradient (ở trên) → Layer 2 noise → Layer 3 sao nhấp nháy (Scene 1) → vignette. */
+.fx-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.fx-root { z-index: 0; }
+/* Noise fractal 3% (đổi độ đậm bằng --noise-opacity) */
+.fx-noise {
+  --noise-opacity: 0.03;
+  opacity: var(--noise-opacity);
+  background-size: 200px 200px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+/* Vignette tối 4 góc cho chiều sâu */
+.fx-vignette { box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.6); }
+@media (max-width: 767px) { .fx-vignette { box-shadow: inset 0 0 110px rgba(0, 0, 0, 0.55); } }
+/* Sao nhấp nháy */
+.fx-star {
+  position: absolute; border-radius: 50%; background: #f5f0e1; opacity: 0.2;
+  box-shadow: 0 0 6px 1px rgba(245, 240, 225, 0.55);
+  animation: twinkle ease-in-out infinite;
+}
+.fx-star.gold { background: #ffcd00; box-shadow: 0 0 7px 1px rgba(255, 205, 0, 0.6); }
+@keyframes twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .fx-star { animation: none; opacity: 0.5; } }
+
+/* ================= BƯỚC 2: bản đồ dark theme + marker HTML =================
+   Leaflet dùng ô ảnh raster nên không nhận JSON style của Google Maps: "dark style" được làm bằng
+   (a) ảnh vệ tinh hạ sáng/giảm bão hoà, (b) bản đồ phố nền tối CARTO Dark Matter nhuộm xanh navy. */
+img.tile-sat { filter: brightness(0.58) saturate(0.65) contrast(1.12); }
+img.tile-street { filter: sepia(0.3) hue-rotate(185deg) saturate(1.5) brightness(1.15); }
+/* nguồn dự phòng OSM (nền sáng) → đảo sáng/tối để vẫn ra dark theme */
+img.tile-osm { filter: invert(1) hue-rotate(180deg) brightness(0.8) contrast(0.95) saturate(0.55); }
+
+/* Marker: 2 vòng pulse lan ra liên tục + lõi có icon SVG + nhãn dạng pill */
+.beacon { --c: #ffcd00; position: relative; }
+.beacon.red { --c: #da251d; }
+.beacon-ring {
+  --d: 44px; position: absolute; left: 0; top: 0; width: var(--d); height: var(--d);
+  margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+  border: 2px solid var(--c, #ffcd00); border-radius: 50%; opacity: 0;
+  box-shadow: 0 0 12px var(--c, #ffcd00);
+  animation: beacon-ring 2.4s ease-out infinite;
+}
+.beacon-ring.r2 { animation-delay: 1.2s; }
+@keyframes beacon-ring { 0% { transform: scale(0.35); opacity: 0.9; } 100% { transform: scale(1.5); opacity: 0; } }
+.beacon-core {
+  position: absolute; left: 0; top: 0; width: 28px; height: 28px; transform: translate(-50%, -50%);
+  display: grid; place-items: center; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff8d6, var(--c) 55%, color-mix(in srgb, var(--c) 60%, #000));
+  box-shadow: 0 0 0 2px rgba(10, 14, 39, 0.85), 0 0 16px var(--c), 0 4px 10px rgba(0, 0, 0, 0.6);
+  font-size: 15px; line-height: 1;
+}
+.beacon-core svg { width: 15px; height: 15px; fill: #0a0e27; }
+.beacon.red .beacon-core svg { fill: #fff; }
+.beacon-pill {
+  position: absolute; top: -10px; left: 22px; white-space: nowrap;
+  padding: 4px 11px; border-radius: 999px; font-size: 12px; line-height: 1.2; letter-spacing: 0.03em; color: #f5f0e1;
+  background: rgba(10, 14, 39, 0.7); border: 1px solid rgba(255, 205, 0, 0.55);
+  backdrop-filter: blur(4px); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.beacon.red .beacon-pill { border-color: rgba(255, 90, 80, 0.6); }
+.beacon-pill.left { left: auto; right: 22px; }
+.isle-tag {
+  position: absolute; white-space: nowrap; padding: 2px 9px; border-radius: 999px; font-size: 11px; line-height: 1.3; color: #ff6b62;
+  background: rgba(10, 14, 39, 0.7); border: 1px solid rgba(218, 37, 29, 0.5); backdrop-filter: blur(4px);
+}
+/* Viền đỏ nét đứt chạy (.march ở trên) + glow: các đảo dùng drop-shadow nhẹ; viền cả nước dùng một lớp blur tĩnh riêng (rẻ hơn nhiều) */
+path.isle-edge { filter: drop-shadow(0 0 4px rgba(218, 37, 29, 0.9)); }
+path.vn-glow { filter: blur(7px); }
+@media (max-width: 767px) { path.vn-edge.march { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .beacon-ring { animation: none; opacity: 0.35; transform: scale(0.9); } }

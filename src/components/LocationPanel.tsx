@@ -7,7 +7,9 @@ import { useFollowScroll } from './useAutoScroll'
 
 // Điện thoại: bảng trượt từ dưới lên (58% màn hình). Máy tính/tablet ngang: bảng bên phải.
 export const panelCls = 'absolute inset-x-0 bottom-0 z-10 h-[58%] overflow-y-auto rounded-t-2xl bg-navy/90 p-5 backdrop-blur md:inset-y-0 md:left-auto md:right-0 md:h-full md:w-full md:max-w-md md:rounded-none md:p-6 md:pt-20'
-export const slide = () => (matchMedia('(min-width: 768px)').matches ? { x: '100%' } : { y: '100%' })
+export const slide = () => (matchMedia('(min-width: 768px)').matches ? { x: '100%', opacity: 0 } : { y: '100%', opacity: 0 })
+// Bản đồ bắt đầu bay (glide) trước, bảng thông tin trượt + mờ dần vào sau một nhịp
+export const panelIn = { duration: 0.7, delay: 0.35, ease: [0.22, 1, 0.36, 1] as const }
 export const backCls = 'rounded-full border border-paper/30 px-4 py-2 text-sm transition duration-200 hover:scale-105'
 // Nút hiện sau khi xem hết thông tin: quay về màn chọn 1 trong 3 con đường
 export const againCls = 'mt-8 min-h-11 w-full rounded-full bg-gold px-4 py-3 font-semibold text-navy transition duration-200 hover:scale-105'
@@ -19,7 +21,7 @@ export default function LocationPanel({ data, onBack, onStep }: { data: Location
   // Cuộn riêng khung bảng (scrollIntoView có thể làm cả trang bị xô lệch trên điện thoại)
   const { box, inner } = useFollowScroll(step)
   return (
-    <motion.aside ref={box} initial={slide()} animate={{ x: 0, y: 0 }} className={panelCls}>
+    <motion.aside ref={box} initial={slide()} animate={{ x: 0, y: 0, opacity: 1 }} transition={panelIn} className={panelCls}>
       <div ref={inner}>
         <button onClick={onBack} className={backCls}>← Chọn con đường khác</button>
         <h2 className="my-5 font-serif text-3xl font-extrabold text-gold glow">{data.title}</h2>

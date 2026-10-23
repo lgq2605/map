@@ -5,3 +5,5 @@ Element.prototype.scrollTo = () => {}
 const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} })
 const node = () => ({ connect() {}, start() {}, stop() {}, gain: param(), frequency: param(), delayTime: param() })
 ;(window as any).AudioContext = class { currentTime = 0; destination = {}; createGain = node; createDelay = node; createOscillator = node; resume() { return Promise.resolve() } suspend() { return Promise.resolve() } }
+// jsdom chưa cài canvas 2D: lớp hạt sáng (ParticleBackground) tự bỏ qua khi getContext trả về null
+HTMLCanvasElement.prototype.getContext = (() => null) as any

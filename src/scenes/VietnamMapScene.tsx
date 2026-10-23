@@ -11,6 +11,7 @@ import HCMCButton from '../components/HCMCButton'
 import NguyenHueScene from './NguyenHueScene'
 import NguyenDuScene from './NguyenDuScene'
 import NamKyScene from './NamKyScene'
+import SceneFX from '../components/SceneFX'
 
 const FOCUS: Record<string, { c: L.LatLngTuple; z: number }> = {
   menu: { c: [16, 107.8], z: 5 }, hcm: { c: [10.7777, 106.7009], z: 14 },
@@ -60,7 +61,7 @@ const ISLANDS: { name: string; b: L.LatLngBoundsLiteral; side?: 'left' | 'right'
   { name: 'Đảo Lý Sơn', b: [[15.33, 109.08], [15.44, 109.18]] },
 ]
 // Màn tổng quan: tô đỏ. Khi đã zoom vào khu vực: chỉ còn đường viền.
-const FILL = { color: '#da251d', weight: 2, fill: true, fillColor: '#da251d', fillOpacity: 0.28, opacity: 1 }
+const FILL = { color: '#da251d', weight: 2, fill: true, fillColor: '#da251d', fillOpacity: 0.28, opacity: 1, dashArray: '8 8' }
 const LINE = { color: '#ffcd00', weight: 2, fill: false, opacity: 0.9 }
 // Khung viền các đảo dùng màu đỏ theo yêu cầu (trước đây là xanh lơ)
 const AREA = '#da251d'
@@ -132,16 +133,19 @@ function fitView(m: L.Map, pts: L.LatLngTuple[], maxZ: number, rightPad = 0): { 
   return { c: [c.lat, c.lng], z: Math.min(maxZ, z) }
 }
 
+// Marker HTML tự vẽ (không dùng marker mặc định): 2 vòng pulse + lõi có icon SVG + nhãn dạng pill.
+// Giữ nguyên tên `pin` và chữ nhãn như cũ (test và các nơi gọi không đổi). cls: '' = vàng, 'red' = đỏ.
+const PIN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>'
 const pin = (label: string, cls = '', emoji = '', side: 'left' | 'right' = 'right') => L.divIcon({
   className: '', iconSize: [0, 0],
-  html: `<div class="relative">${emoji ? `<div class="-translate-x-1/2 -translate-y-1/2 text-3xl">${emoji}</div>` : `<div class="pulse ${cls}"></div>`}<span class="absolute top-3 whitespace-nowrap rounded bg-navy/85 px-2 py-1 text-xs text-paper ${side === 'left' ? 'right-4' : 'left-4'}">${label}</span></div>`,
+  html: `<div class="beacon ${cls}"><span class="beacon-ring"></span><span class="beacon-ring r2"></span><span class="beacon-core">${emoji || PIN_SVG}</span><span class="beacon-pill${side === 'left' ? ' left' : ''}">${label}</span></div>`,
 })
 
 // Ghim trường học: CHỈ LOGO của Trường THCS và THPT Trần Đại Nghĩa (logo chính thức),
 // không kèm chữ tên trường hay địa chỉ. Nền tròn xanh đêm + viền vàng cho nổi trên bản đồ.
 const schoolIcon = () => L.divIcon({
   className: '', iconSize: [0, 0],
-  html: `<div class="relative"><img src="${schoolLogo}" alt="Logo trường THCS và THPT Trần Đại Nghĩa" class="h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-gold bg-navy object-contain shadow-lg shadow-black/60"/></div>`,
+  html: `<div class="relative beacon"><span class="beacon-ring" style="--d:72px"></span><span class="beacon-ring r2" style="--d:72px"></span><img src="${schoolLogo}" alt="Logo trường THCS và THPT Trần Đại Nghĩa" class="h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-gold bg-navy object-contain shadow-lg shadow-black/60"/></div>`,
 })
 
 // Nhãn tên phường hiện hành (xem WARDS): chữ nhỏ cố định, không tương tác,
@@ -154,7 +158,7 @@ const wardIcon = (name: string) => L.divIcon({
 // Nhãn tên đảo đặt ở mép khung
 const islandTag = (text: string, at: L.LatLngTuple, side: 'left' | 'right' | 'in') => L.marker(at, {
   interactive: false,
-  icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="relative"><span class="absolute whitespace-nowrap rounded bg-navy/80 px-1.5 py-0.5 text-[11px] text-[#ff5147] ${side === 'left' ? 'right-1 -translate-y-1/2' : side === 'right' ? 'left-1 -translate-y-1/2' : 'left-1 top-1'}">${text}</span></div>` }),
+  icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="relative"><span class="isle-tag ${side === 'left' ? 'right-1 -translate-y-1/2' : side === 'right' ? 'left-1 -translate-y-1/2' : 'left-1 top-1'}">${text}</span></div>` }),
 })
 
 // Tô sáng đường đang xem (dữ liệu hình dạng đường lấy từ OpenStreetMap, xem data/geo.ts):
@@ -186,7 +190,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
   const el = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const layer = useRef<L.LayerGroup | null>(null)
-  const base = useRef<{ sat: L.LayerGroup; street: L.LayerGroup; vn: L.GeoJSON } | null>(null)
+  const base = useRef<{ sat: L.LayerGroup; street: L.LayerGroup; vn: L.GeoJSON; glow: L.GeoJSON } | null>(null)
   const [failed, setFailed] = useState(false)
   const tween = useRef<gsap.core.Tween | null>(null)
   const geo = useRef<GeoResult | null>(null)
@@ -207,9 +211,9 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     // (maxNativeZoom 16: zoom sâu hơn thì phóng to ảnh, không bị ô xám "chưa có dữ liệu".)
     // Nhà cung cấp dự phòng cũng là ảnh vệ tinh (trước đây là bản đồ nền tối nên bị chuyển thành màu xanh đen).
     const sat = makeBase([
-      tl(`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, { maxNativeZoom: 16, zIndex: 1, attribution: 'Tiles © Esri' }),
-      tl('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 16, zIndex: 1, attribution: 'Tiles © Esri' }),
-      tl('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg', { maxNativeZoom: 13, zIndex: 1, attribution: 'Sentinel-2 cloudless © EOX IT Services GmbH (Copernicus Sentinel data 2020)' }),
+      tl(`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, { className: 'tile-sat', maxNativeZoom: 16, zIndex: 1, attribution: 'Tiles © Esri' }),
+      tl('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { className: 'tile-sat', maxNativeZoom: 16, zIndex: 1, attribution: 'Tiles © Esri' }),
+      tl('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2020_3857/default/g/{z}/{y}/{x}.jpg', { className: 'tile-sat', maxNativeZoom: 13, zIndex: 1, attribution: 'Sentinel-2 cloudless © EOX IT Services GmbH (Copernicus Sentinel data 2020)' }),
     ], [], onFail).addTo(m)
     // Lớp nhãn "Boundaries and Places" của Esri: CHỈ dùng khi thu nhỏ (dưới cấp 13) — ngang mức
     // tỉnh/thành. Phóng sâu hơn thì chữ trên ô bị phóng to vỡ dạng và còn ghi tên quận cũ,
@@ -225,10 +229,13 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     places.addTo(m)
     syncLabelLayers()
     // Bản đồ đường phố (thấy tên đường): chỉ phủ lên ảnh vệ tinh SAU KHI zoom xong tới các con đường
-    const street = makeBase([tl('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { zIndex: 3, attribution: '© OpenStreetMap contributors' }), tl('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { zIndex: 3, subdomains: 'abcd', attribution: '© OpenStreetMap contributors © CARTO' })], [], onFail)
-    const vn = L.geoJSON(vietnam as any, { style: FILL }).addTo(m)
+    // Bản đồ phố dạng DARK: CARTO Dark Matter (nhuộm xanh navy bằng CSS .tile-street); nguồn dự phòng là OSM đảo màu (.tile-osm)
+    const street = makeBase([tl('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { className: 'tile-street', zIndex: 3, subdomains: 'abcd', attribution: '© OpenStreetMap contributors © CARTO' }), tl('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { className: 'tile-osm', zIndex: 3, attribution: '© OpenStreetMap contributors' })], [], onFail)
+    // Viền đỏ glow (lớp blur tĩnh nằm dưới) + viền đỏ nét đứt chạy (className chỉ áp dụng lúc tạo layer)
+    const glow = L.geoJSON(vietnam as any, { style: { color: '#da251d', weight: 10, opacity: 0.45, fill: false, className: 'vn-glow' }, interactive: false }).addTo(m)
+    const vn = L.geoJSON(vietnam as any, { style: { ...FILL, className: 'march vn-edge' } }).addTo(m)
     layer.current = L.layerGroup().addTo(m)
-    base.current = { sat, street, vn }
+    base.current = { sat, street, vn, glow }
     map.current = m
     loadGeo().then(r => { geo.current = r }) // tải trước hình dạng đường trong lúc người dùng ở màn tổng quan
     return () => { tween.current?.kill(); m.remove() }
@@ -245,6 +252,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     if (!m.hasLayer(b.sat)) b.sat.addTo(m)
     if (!road && m.hasLayer(b.street)) m.removeLayer(b.street)
     b.vn.setStyle(scene === 'menu' ? FILL : LINE)
+    b.glow.setStyle({ opacity: scene === 'menu' ? 0.45 : 0 })
     // Đích zoom: tự căn để thấy TRỌN con đường (dữ liệu OSM có thể về muộn, xem loadGeo bên dưới).
     // Màn TP.HCM: ôm cả 3 con đường. Mỗi con đường: ôm trọn đường đó; Nguyễn Du tính cả vị trí logo trường.
     // Riêng Nguyễn Du: từ mốc 1976 trở đi (duStep ≥ 1) thì phóng to TRƯỜNG nhưng vẫn thấy một phần khu vực xung quanh.
@@ -295,7 +303,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
       L.marker([10.7769, 106.7009], { icon: pin('TP. Hồ Chí Minh') }).addTo(g)
       // Khung viền các đảo (Hoàng Sa, Trường Sa, Phú Quốc, Côn Đảo...)
       ISLANDS.forEach(i => {
-        L.rectangle(i.b, { color: AREA, weight: 2, dashArray: '5 4', fillColor: AREA, fillOpacity: 0.12 }).bindTooltip(i.name, { sticky: true }).addTo(g)
+        L.rectangle(i.b, { color: AREA, weight: 2, dashArray: '8 8', className: 'march isle-edge', fillColor: AREA, fillOpacity: 0.12 }).bindTooltip(i.name, { sticky: true }).addTo(g)
         const [[s0, w], [n, e]] = i.b
         if (i.side) islandTag(i.name, i.side === 'left' ? [(s0 + n) / 2, w] : i.side === 'right' ? [(s0 + n) / 2, e] : [n, w], i.side).addTo(g)
       })
@@ -331,6 +339,8 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
           các class Leaflet tự thêm (leaflet-container, ...) bị xoá và ô bản đồ co về 0px do Tailwind (img { max-width: 100% }). */}
       <div className={'relative z-0 w-full ' + (panel ? 'h-[42%] md:h-full' : 'h-full')}>
         <div ref={el} className="h-full w-full bg-navy" />
+        {/* Trang trí: hạt sáng + noise + vignette phủ lên bản đồ (pointer-events: none, nằm trong khung bản đồ nên luôn dưới bảng thông tin) */}
+        <div className="pointer-events-none absolute inset-0 z-[900]"><SceneFX /></div>
       </div>
       {failed && <div className="absolute left-1/2 top-20 z-20 w-[min(90%,32rem)] -translate-x-1/2 rounded-lg bg-navy/90 px-4 py-2 text-center text-sm text-gold">Không tải được ảnh bản đồ nền. Hãy kiểm tra mạng, tắt VPN hoặc trình chặn quảng cáo rồi tải lại trang.</div>}
       {/* Màn toàn quốc: nút thành phố Hồ Chí Minh — bấm để phóng to TP.HCM và chọn 1 trong 3 con đường */}

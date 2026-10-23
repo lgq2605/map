@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { drum } from '../audio'
 import { namKy } from '../data/namKy'
-import { panelCls, backCls, againCls, slide } from '../components/LocationPanel'
+import { panelCls, backCls, againCls, slide, panelIn } from '../components/LocationPanel'
 import Visual from '../components/Visual'
 import { useTypewriter } from '../components/useTypewriter'
 import { useFollowScroll } from '../components/useAutoScroll'
@@ -34,7 +34,7 @@ export default function NamKyScene({ onBack }: { onBack: () => void }) {
   const done1 = typedFacts >= namKy.facts.length
   const [done2, setDone2] = useState(false)
   return (
-    <motion.aside ref={box} initial={slide()} animate={{ x: 0, y: 0 }} className={panelCls}>
+    <motion.aside ref={box} initial={slide()} animate={{ x: 0, y: 0, opacity: 1 }} transition={panelIn} className={panelCls}>
       <div ref={inner}>
         <button onClick={onBack} className={backCls}>← Chọn con đường khác</button>
         <h2 className="my-5 font-serif text-3xl font-extrabold text-vred">🔥 {namKy.title}</h2>

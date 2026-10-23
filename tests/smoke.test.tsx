@@ -11,16 +11,18 @@ vi.mock('react-globe.gl', () => ({
 }))
 
 const t = { timeout: 9000 }
-test('hành trình đầy đủ: địa cầu → menu 3 con đường → Nguyễn Huệ → Nam Kỳ → Nguyễn Du', async () => {
+test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đường → Nguyễn Huệ → Nam Kỳ → Nguyễn Du', async () => {
   render(<App />)
   expect(screen.getByRole('heading', { name: 'Một cái tên, ngàn câu chuyện' })).toBeTruthy()
   fireEvent.click(screen.getByTestId('globe'))
-  // menu: 3 con đường ở TP.HCM, không còn tuỳ chọn "Khu vực TP. Hồ Chí Minh" / "Vùng Nam Bộ"
+  // màn bản đồ Việt Nam: chỉ có NÚT Thành phố Hồ Chí Minh, 3 con đường chưa hiện
+  expect(await screen.findByRole('button', { name: /Thành phố Hồ Chí Minh/ }, t)).toBeTruthy()
+  expect(screen.queryByText(/Đường Nguyễn Huệ/)).toBeNull()
+  // bấm nút: phóng tới TP.HCM và hiện 3 con đường
+  fireEvent.click(screen.getByRole('button', { name: /Thành phố Hồ Chí Minh/ }))
   expect(await screen.findByText(/🛣️ Đường Nguyễn Huệ/, {}, t)).toBeTruthy()
   expect(screen.getByText(/🏫 Đường Nguyễn Du/)).toBeTruthy()
   expect(screen.getByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/)).toBeTruthy()
-  expect(screen.queryByText(/Khu vực TP/)).toBeNull()
-  expect(screen.queryByText(/Vùng Nam Bộ/)).toBeNull()
   fireEvent.click(screen.getByText(/🛣️ Đường Nguyễn Huệ/))
   // Street View không tự bật: chỉ có nút, chưa có khung nhúng
   expect(await screen.findByRole('button', { name: /Street View/ })).toBeTruthy()
@@ -28,13 +30,19 @@ test('hành trình đầy đủ: địa cầu → menu 3 con đường → Nguy�
   for (let i = 0; i < 3; i++) fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, t))
   fireEvent.click(await screen.findByRole('button', { name: /Xem nhân vật/ }, t))
   expect(await screen.findByRole('heading', { name: /Quang Trung – Nguyễn Huệ/ })).toBeTruthy()
-  fireEvent.click(screen.getByText(/Quay lại chọn địa điểm/))
-  fireEvent.click(await screen.findByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/))
+  // xem hết thông tin (cả nhân vật): có nút quay lại chọn 3 con đường
+  expect(await screen.findByRole('button', { name: /Quay lại chọn 3 con đường/ }, t)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: /Quay lại chọn 3 con đường/ }))
+  // quay ĐÚNG về màn chọn 3 con đường (không quay ra bản đồ toàn quốc)
+  expect(await screen.findByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/, {}, t)).toBeTruthy()
+  fireEvent.click(screen.getByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/))
   expect(await screen.findByText(/Khởi nghĩa Nam Kỳ là gì/)).toBeTruthy()
-  fireEvent.click(screen.getByText(/Về Việt Nam/))
-  fireEvent.click(await screen.findByText(/🏫 Đường Nguyễn Du/))
+  expect(await screen.findByRole('button', { name: /Quay lại chọn 3 con đường/ }, t)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: /Quay lại chọn 3 con đường/ }))
+  expect(await screen.findByText(/🏫 Đường Nguyễn Du/, {}, t)).toBeTruthy()
+  fireEvent.click(screen.getByText(/🏫 Đường Nguyễn Du/))
   expect(await screen.findByText('Năm 1874')).toBeTruthy()
-  // ghim trường: biểu tượng + tên trường (luôn có vị trí dự phòng nên hiện kể cả khi không tải được dữ liệu OSM)
+  // logo trường (mũ cử nhân + tên trường) luôn hiện ở toạ độ đã chỉ định, kể cả khi không tải được dữ liệu OSM
   expect(document.body.textContent).toContain('TRƯỜNG TRUNG HỌC CƠ SỞ VÀ TRUNG HỌC PHỔ THÔNG TRẦN ĐẠI NGHĨA')
   expect(document.body.textContent).toContain('53 Nguyễn Du, Sài Gòn, Hồ Chí Minh, Việt Nam')
 })
@@ -42,7 +50,7 @@ test('hành trình đầy đủ: địa cầu → menu 3 con đường → Nguy�
 test('màn tổng quan: khung các đảo, không còn khung Nam Bộ', async () => {
   render(<App />)
   fireEvent.click(screen.getByTestId('globe'))
-  await screen.findByText(/🛣️ Đường Nguyễn Huệ/, {}, t)
+  await screen.findByRole('button', { name: /Thành phố Hồ Chí Minh/ }, t)
   const txt = document.body.textContent ?? ''
   for (const n of ['Quần đảo Hoàng Sa', 'Quần đảo Trường Sa', 'Đảo Phú Quốc', 'Côn Đảo']) expect(txt).toContain(n)
   expect(txt).not.toContain('Nam Bộ')

@@ -9,6 +9,8 @@ import { useFollowScroll } from './useAutoScroll'
 export const panelCls = 'absolute inset-x-0 bottom-0 z-10 h-[58%] overflow-y-auto rounded-t-2xl bg-navy/90 p-5 backdrop-blur md:inset-y-0 md:left-auto md:right-0 md:h-full md:w-full md:max-w-md md:rounded-none md:p-6 md:pt-20'
 export const slide = () => (matchMedia('(min-width: 768px)').matches ? { x: '100%' } : { y: '100%' })
 export const backCls = 'rounded-full border border-paper/30 px-4 py-2 text-sm transition duration-200 hover:scale-105'
+// Nút hiện sau khi xem hết thông tin: quay về màn chọn 1 trong 3 con đường
+export const againCls = 'mt-8 min-h-11 w-full rounded-full bg-gold px-4 py-3 font-semibold text-navy transition duration-200 hover:scale-105'
 
 export default function LocationPanel({ data, onBack }: { data: LocationData; onBack: () => void }) {
   const [step, setStep] = useState(0)
@@ -17,7 +19,7 @@ export default function LocationPanel({ data, onBack }: { data: LocationData; on
   return (
     <motion.aside ref={box} initial={slide()} animate={{ x: 0, y: 0 }} className={panelCls}>
       <div ref={inner}>
-        <button onClick={onBack} className={backCls}>← Quay lại chọn địa điểm</button>
+        <button onClick={onBack} className={backCls}>← Chọn con đường khác</button>
         <h2 className="my-5 font-serif text-3xl font-extrabold text-gold glow">{data.title}</h2>
         <ol className="ml-2 space-y-8 border-l-2 border-vred pl-6">
           {data.milestones.slice(0, Math.min(step, 3) + 1).map((m, i) => (
@@ -25,6 +27,12 @@ export default function LocationPanel({ data, onBack }: { data: LocationData; on
           ))}
         </ol>
         {step >= 4 && <FigureCard f={data.figure} />}
+        {/* Xem hết thông tin (cả nhân vật): nút quay lại chọn 1 trong 3 con đường */}
+        {step >= 4 && (
+          <motion.button initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onClick={onBack} className={againCls}>
+            🔁 Quay lại chọn 3 con đường
+          </motion.button>
+        )}
       </div>
     </motion.aside>
   )

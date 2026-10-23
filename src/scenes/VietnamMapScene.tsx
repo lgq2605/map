@@ -4,20 +4,24 @@ import gsap from 'gsap'
 import 'leaflet/dist/leaflet.css'
 import type { Scene } from '../data/types'
 import vietnam from '../data/vietnam.geo.json'
-import { loadGeo, roadsNamed, FALLBACK_HUE, FALLBACK_SCHOOL, ROAD_HUE, ROAD_DU, ROAD_NAMKY, type GeoResult } from '../data/geo'
+import { loadGeo, roadsNamed, FALLBACK_HUE, ROAD_HUE, ROAD_DU, ROAD_NAMKY, type GeoResult } from '../data/geo'
 import ChoiceModal from '../components/ChoiceModal'
+import HCMCButton from '../components/HCMCButton'
 import NguyenHueScene from './NguyenHueScene'
 import NguyenDuScene from './NguyenDuScene'
 import NamKyScene from './NamKyScene'
 
 const FOCUS: Record<string, { c: L.LatLngTuple; z: number }> = {
-  menu: { c: [16, 107.8], z: 5 }, hue: { c: [10.7743, 106.7038], z: 17 },
-  du: { c: [10.7797, 106.6987], z: 18 },
+  menu: { c: [16, 107.8], z: 5 }, hcm: { c: [10.7777, 106.7009], z: 14 },
+  hue: { c: [10.7743, 106.7038], z: 17 }, du: { c: [10.7792138, 106.7010202], z: 17 },
   namky: { c: [10.7795, 106.6925], z: 15 }, // chỉ dùng khi chưa có dữ liệu đường; có dữ liệu thì tự căn theo chiều dài đường
 }
 // Ba con đường ở TP.HCM (mỗi scene tương ứng một đường)
 const ROAD_OF = { hue: ROAD_HUE, du: ROAD_DU, namky: ROAD_NAMKY } as const
 type RoadScene = keyof typeof ROAD_OF
+
+// Vị trí logo trường (biểu tượng mũ cử nhân + tên trường) do người dùng chỉ định trên bản đồ
+const SCHOOL_POS: [number, number] = [10.7792138, 106.7010202]
 
 // Khung viền các đảo của Việt Nam, hiện ở màn tổng quan. Hoàng Sa, Trường Sa dùng khung theo toạ độ địa lý của quần đảo;
 // các đảo còn lại ôm theo hình đảo. `side`: nhãn đặt bên trái / phải / trong khung (không có = chỉ hiện tên khi rê chuột).
@@ -35,10 +39,13 @@ const SCHOOL_ADDR = '53 Nguyễn Du, Sài Gòn, Hồ Chí Minh, Việt Nam'
 // Màn tổng quan: tô đỏ. Khi đã zoom vào khu vực: chỉ còn đường viền.
 const FILL = { color: '#da251d', weight: 2, fill: true, fillColor: '#da251d', fillOpacity: 0.28, opacity: 1 }
 const LINE = { color: '#ffcd00', weight: 2, fill: false, opacity: 0.9 }
-// Khung các đảo dùng màu riêng (xanh lơ) để khác với viền quốc gia (vàng) và màu tô đỏ của bản đồ Việt Nam
-const AREA = '#00e5ff'
-// Viền đường đang xem: nhẹ, chỉ đủ để nhận ra đường nào (không phát sáng, không viền trắng dày)
-const ROAD = '#da251d'
+// Khung viền các đảo dùng màu đỏ theo yêu cầu (trước đây là xanh lơ)
+const AREA = '#da251d'
+// Màu nhãn tên đảo: đỏ sáng hơn một chút cho dễ đọc trên nền tối
+const AREA_TEXT = '#ff5147'
+// Đường đang xem: nét LIỀN màu xanh dương, mờ 40%, KHÔNG phát sáng —
+// phủ đúng thân đường để người xem thấy rõ hình dáng con đường trên nền bản đồ.
+const ROAD = '#1e90ff'
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
 
 export const tl = (url: string, o: L.TileLayerOptions) => {
@@ -86,6 +93,18 @@ function glide(m: L.Map, c: L.LatLngTuple, z: number, tween: { current: gsap.cor
   })
 }
 
+// Canh khung nhìn để thấy TRỌN các điểm cho trước (xuất hiện hết cả con đường).
+// `rightPad`: chừa trước bên phải cho bảng thông tin trên máy tính — co khung lại và
+// dời tâm sang phải để đường nằm gọn trong vùng bản đồ còn nhìn thấy.
+function fitView(m: L.Map, pts: L.LatLngTuple[], maxZ: number, rightPad = 0): { c: L.LatLngTuple; z: number } | null {
+  const bb = L.latLngBounds(pts)
+  const z = m.getBoundsZoom(bb, false, L.point(rightPad + 24, 40))
+  if (!Number.isFinite(z)) return null
+  let c = bb.getCenter()
+  if (rightPad) c = m.unproject(m.project(c, z).add(L.point(rightPad / 2, 0)), z)
+  return { c: [c.lat, c.lng], z: Math.min(maxZ, z) }
+}
+
 const pin = (label: string, cls = '', emoji = '', side: 'left' | 'right' = 'right') => L.divIcon({
   className: '', iconSize: [0, 0],
   html: `<div class="relative">${emoji ? `<div class="-translate-x-1/2 -translate-y-1/2 text-3xl">${emoji}</div>` : `<div class="pulse ${cls}"></div>`}<span class="absolute top-3 whitespace-nowrap rounded bg-navy/85 px-2 py-1 text-xs text-paper ${side === 'left' ? 'right-4' : 'left-4'}">${label}</span></div>`,
@@ -101,22 +120,19 @@ const schoolIcon = () => L.divIcon({
 // Nhãn tên đảo đặt ở mép khung
 const islandTag = (text: string, at: L.LatLngTuple, side: 'left' | 'right' | 'in') => L.marker(at, {
   interactive: false,
-  icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="relative"><span class="absolute whitespace-nowrap rounded bg-navy/80 px-1.5 py-0.5 text-[11px] text-[#00e5ff] ${side === 'left' ? 'right-1 -translate-y-1/2' : side === 'right' ? 'left-1 -translate-y-1/2' : 'left-1 top-1'}">${text}</span></div>` }),
+  icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="relative"><span class="absolute whitespace-nowrap rounded bg-navy/80 px-1.5 py-0.5 text-[11px] text-[#ff5147] ${side === 'left' ? 'right-1 -translate-y-1/2' : side === 'right' ? 'left-1 -translate-y-1/2' : 'left-1 top-1'}">${text}</span></div>` }),
 })
 
-// Viền đường của địa điểm đang xem (dữ liệu hình dạng đường lấy từ OpenStreetMap, xem data/geo.ts):
-// viền đỏ mảnh trong mờ + lõi trắng mờ, vừa đủ để nhận ra đường, không át bản đồ.
-function highlight(g: L.LayerGroup, sc: RoadScene, geo: GeoResult | null) {
+// Tô sáng đường đang xem (dữ liệu hình dạng đường lấy từ OpenStreetMap, xem data/geo.ts):
+// nét liền màu xanh dương mờ 40%, không phát sáng — phủ đúng thân đường để thấy rõ hình dáng.
+// `w`: độ dày nét (mặc định khi xem một đường; màn TP.HCM dùng nét mảnh hơn).
+function highlight(g: L.LayerGroup, sc: RoadScene, geo: GeoResult | null, w = 14) {
   const name = ROAD_OF[sc]
   let roads = roadsNamed(geo, name)
   if (!roads.length && sc === 'hue') roads = [{ name, pts: FALLBACK_HUE, area: false }]
   roads.forEach(r => {
-    if (r.area) L.polygon(r.pts, { color: ROAD, weight: 2, opacity: 0.6, fillColor: ROAD, fillOpacity: 0.1, interactive: false }).addTo(g)
-    else {
-      const o = { lineCap: 'round', lineJoin: 'round', interactive: false } as const
-      L.polyline(r.pts, { ...o, color: ROAD, weight: 9, opacity: 0.5 }).addTo(g)
-      L.polyline(r.pts, { ...o, color: '#ffffff', weight: 5, opacity: 0.5 }).addTo(g)
-    }
+    if (r.area) L.polygon(r.pts, { color: ROAD, weight: 2, opacity: 0.4, fillColor: ROAD, fillOpacity: 0.4, interactive: false }).addTo(g)
+    else L.polyline(r.pts, { color: ROAD, weight: w, opacity: 0.4, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(g)
   })
 }
 
@@ -134,7 +150,8 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
   const [failed, setFailed] = useState(false)
   const tween = useRef<gsap.core.Tween | null>(null)
   const geo = useRef<GeoResult | null>(null)
-  const back = () => setScene('menu')
+  // Xem xong một con đường: quay lại màn chọn 3 con đường ở TP.HCM (không quay ra toàn quốc)
+  const back = () => setScene('hcm')
   const road = scene === 'hue' || scene === 'du' || scene === 'namky'
   const panel = road
 
@@ -155,7 +172,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     layer.current = L.layerGroup().addTo(m)
     base.current = { sat, street, vn }
     map.current = m
-    loadGeo().then(r => { geo.current = r }) // tải trước hình dạng đường và vị trí trường trong lúc người dùng ở màn hình chọn
+    loadGeo().then(r => { geo.current = r }) // tải trước hình dạng đường trong lúc người dùng ở màn tổng quan
     return () => { tween.current?.kill(); m.remove() }
   }, [])
 
@@ -169,15 +186,25 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     if (!m.hasLayer(b.sat)) b.sat.addTo(m)
     if (!road && m.hasLayer(b.street)) m.removeLayer(b.street)
     b.vn.setStyle(scene === 'menu' ? FILL : LINE)
-    // Đích zoom. Nguyễn Du: vị trí thật của trường (nếu đã tải được). Nam Kỳ Khởi Nghĩa: vừa khít chiều dài đường.
+    // Đích zoom: tự căn để thấy TRỌN con đường (dữ liệu OSM có thể về muộn, xem loadGeo bên dưới).
+    // Màn TP.HCM: ôm cả 3 con đường. Mỗi con đường: ôm trọn đường đó; Nguyễn Du tính cả vị trí logo trường.
     const aim = (): { c: L.LatLngTuple; z: number } => {
-      if (scene === 'du') return { c: geo.current?.school ?? FALLBACK_SCHOOL ?? f.c, z: f.z }
-      if (scene === 'namky') {
-        const pts = roadsNamed(geo.current, ROAD_NAMKY).flatMap(r => r.pts)
+      if (scene === 'hcm') {
+        const pts = [ROAD_HUE, ROAD_DU, ROAD_NAMKY].flatMap(n => roadsNamed(geo.current, n).flatMap(r => r.pts))
+        return (pts.length ? fitView(m, pts, 15) : null) ?? f
+      }
+      if (road) {
+        const name = ROAD_OF[scene as RoadScene]
+        let rs = roadsNamed(geo.current, name)
+        if (!rs.length && scene === 'hue') rs = [{ name, pts: FALLBACK_HUE, area: false }]
+        let pts = rs.flatMap(r => r.pts)
+        if (scene === 'du') pts = pts.concat([SCHOOL_POS]) // thấy trọn cả đường lẫn logo trường
         if (pts.length) {
-          const bb = L.latLngBounds(pts), c = bb.getCenter(), z = m.getBoundsZoom(bb, false, L.point(40, 40))
-          if (Number.isFinite(z)) return { c: [c.lat, c.lng], z: Math.min(16, z) }
+          // Trên máy tính, bảng thông tin che mất bên phải (tối đa 28rem): chừa chỗ cho nó
+          const pad = matchMedia('(min-width: 768px)').matches ? Math.min(448, m.getSize().x * 0.46) : 0
+          return fitView(m, pts, scene === 'namky' ? 16 : 17, pad) ?? f
         }
+        if (scene === 'du') return { c: SCHOOL_POS, z: f.z }
       }
       return f
     }
@@ -199,22 +226,27 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
       })
     }
     let alive = true
-    if (scene === 'hue' || scene === 'du' || scene === 'namky') {
-      const sc: RoadScene = scene
+    if (scene === 'hcm' || road) {
       const show = (r: GeoResult | null) => {
         g.clearLayers()
-        highlight(g, sc, r)
-        if (sc === 'hue') L.marker(FOCUS.hue.c, { icon: pin('Đường Nguyễn Huệ') }).addTo(g)
-        if (sc === 'du') L.marker(r?.school ?? FALLBACK_SCHOOL ?? FOCUS.du.c, { icon: schoolIcon(), zIndexOffset: 1000 }).addTo(g)
-        const mid = sc === 'namky' ? roadMiddle(r, ROAD_NAMKY) : null
-        if (mid) L.marker(mid, { icon: pin('Đường Nam Kỳ Khởi Nghĩa', 'red') }).addTo(g)
+        if (scene === 'hcm') {
+          // Phóng tới TP.HCM: hiện cả 3 con đường (nét mảnh) để nhìn thấy vị trí từng đường
+          ;(['hue', 'du', 'namky'] as RoadScene[]).forEach(s => highlight(g, s, r, 6))
+        } else {
+          const sc = scene as RoadScene
+          highlight(g, sc, r)
+          if (sc === 'hue') L.marker(FOCUS.hue.c, { icon: pin('Đường Nguyễn Huệ') }).addTo(g)
+          if (sc === 'du') L.marker(SCHOOL_POS, { icon: schoolIcon(), zIndexOffset: 1000 }).addTo(g)
+          const mid = sc === 'namky' ? roadMiddle(r, ROAD_NAMKY) : null
+          if (mid) L.marker(mid, { icon: pin('Đường Nam Kỳ Khởi Nghĩa', 'red') }).addTo(g)
+        }
       }
       show(geo.current)
       if (!geo.current) loadGeo().then(r => {
         if (!alive || !r) return
         geo.current = r
         show(r)
-        if (sc !== 'hue' && !tween.current?.isActive()) { const a = aim(); m.flyTo(a.c, a.z, { duration: 0.8 }) }
+        if (!tween.current?.isActive()) { const a = aim(); m.flyTo(a.c, a.z, { duration: 0.8 }) }
       })
     }
     return () => { alive = false }
@@ -228,7 +260,9 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
         <div ref={el} className="h-full w-full bg-navy" />
       </div>
       {failed && <div className="absolute left-1/2 top-20 z-20 w-[min(90%,32rem)] -translate-x-1/2 rounded-lg bg-navy/90 px-4 py-2 text-center text-sm text-gold">Không tải được ảnh bản đồ nền. Hãy kiểm tra mạng, tắt VPN hoặc trình chặn quảng cáo rồi tải lại trang.</div>}
-      {scene === 'menu' && <ChoiceModal onPick={setScene} />}
+      {/* Màn toàn quốc: nút thành phố Hồ Chí Minh — bấm để phóng to TP.HCM và chọn 1 trong 3 con đường */}
+      {scene === 'menu' && <HCMCButton onPick={() => setScene('hcm')} />}
+      {scene === 'hcm' && <ChoiceModal onPick={setScene} />}
       {scene === 'hue' && <NguyenHueScene onBack={back} />}
       {scene === 'du' && <NguyenDuScene onBack={back} />}
       {scene === 'namky' && <NamKyScene onBack={back} />}

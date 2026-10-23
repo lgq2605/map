@@ -10,12 +10,11 @@ import { useFollowScroll } from '../components/useAutoScroll'
 const nextCls = 'min-h-11 rounded-full bg-gold px-4 py-2 font-semibold text-navy transition duration-200 hover:scale-105'
 const bob = { animate: { x: [0, 8, 0] }, transition: { repeat: Infinity, duration: 1 } }
 
-// Chữ hiện TỪNG TỪ như các con đường khác (xem TimelineStep): mỗi khối nội dung gõ dần,
-// gõ xong mới hiện nút "Tiếp theo". Khối chữ càng dài càng gõ nhanh để không phải chờ quá ~2,5 giây.
-const typedSpeed = (text: string) => Math.min(18, Math.max(4, Math.round(2500 / Math.max(1, text.length))))
+// Chữ hiện từng chữ với ĐÚNG tốc độ của 2 con đường kia (xem TimelineStep: useTypewriter, mặc định 18ms/chữ).
+// Mỗi khối nội dung gõ dần, gõ xong mới hiện khối kế tiếp / nút "Tiếp theo".
 
 function Typed({ text, onDone, className }: { text: string; onDone?: () => void; className?: string }) {
-  const { text: shown, done } = useTypewriter(text, true, typedSpeed(text))
+  const { text: shown, done } = useTypewriter(text, true)
   useEffect(() => { if (done) onDone?.() }, [done]) // eslint-disable-line react-hooks/exhaustive-deps
   return <span className={className}>{shown}</span>
 }
@@ -23,7 +22,7 @@ function Typed({ text, onDone, className }: { text: string; onDone?: () => void;
 // Lịch sử con đường chia thành 3 phần xem LẦN LƯỢT bằng nút "Tiếp theo":
 // 1) Nguồn gốc tên đường → 2) Khởi nghĩa Nam Kỳ là gì? →
 // 3) Khi nào con đường được đặt tên (kèm ảnh sự kiện) + nút Quay lại.
-// Trên bản đồ: đường Nam Kỳ Khởi Nghĩa luôn được tô sáng xanh dương (40%, không glow)
+// Trên bản đồ: khi đã chọn đường Nam Kỳ Khởi Nghĩa thì nó được tô xanh dương (40%, không glow)
 // trải dọc suốt chiều dài con đường (xem highlight() trong VietnamMapScene.tsx).
 export default function NamKyScene({ onBack }: { onBack: () => void }) {
   useEffect(() => { drum() }, [])
@@ -50,7 +49,8 @@ export default function NamKyScene({ onBack }: { onBack: () => void }) {
           <motion.section initial={{ x: 80, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="mt-8 space-y-3">
             <h3 className="font-serif text-xl text-gold">❓ Khởi nghĩa Nam Kỳ là gì?</h3>
             <ul className="space-y-3 leading-relaxed">
-              {namKy.facts.map(([k, v]) => (
+              {/* Các ý hiện LẦN LƯỢT: ý sau chỉ xuất hiện khi ý trước đã gõ xong (trước đây tất cả gõ cùng lúc) */}
+              {namKy.facts.slice(0, typedFacts + 1).map(([k, v]) => (
                 <li key={k}><b className="text-gold">{k}:</b> <Typed text={v} onDone={() => setTypedFacts(n => n + 1)} /></li>
               ))}
             </ul>

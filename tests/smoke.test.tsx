@@ -11,6 +11,8 @@ vi.mock('react-globe.gl', () => ({
 }))
 
 const t = { timeout: 9000 }
+// Nam Kỳ gõ chữ cùng tốc độ 18ms/chữ như 2 đường kia (đoạn dài ~500 chữ ≈ 9s, 5 ý ≈ 16s)
+const slow = { timeout: 30000 }
 test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đường → Nguyễn Huệ → Nam Kỳ → Nguyễn Du', async () => {
   render(<App />)
   expect(screen.getByRole('heading', { name: 'Một cái tên, ngàn câu chuyện' })).toBeTruthy()
@@ -39,11 +41,16 @@ test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đườn
   fireEvent.click(screen.getByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/))
   expect(await screen.findByRole('heading', { name: '🔥 Đường Nam Kỳ Khởi Nghĩa' })).toBeTruthy()
   expect(await screen.findByText('📖 Nguồn gốc tên đường')).toBeTruthy()
-  fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, t))
+  fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, slow))
   expect(await screen.findByText('❓ Khởi nghĩa Nam Kỳ là gì?')).toBeTruthy()
-  fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, t))
+  // các ý của "Khởi nghĩa Nam Kỳ là gì?" hiện LẦN LƯỢT (không gõ cùng lúc): lúc đầu chỉ có ý đầu tiên
+  expect(screen.getByText('Thời gian:')).toBeTruthy()
+  expect(screen.queryByText('Địa bàn:')).toBeNull()
+  expect(await screen.findByText('Địa bàn:', {}, slow)).toBeTruthy()
+  expect(screen.queryByText('Kết quả:')).toBeNull()
+  fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, { timeout: 40000 }))
   expect(await screen.findByText(/Khi nào con đường được đặt tên/)).toBeTruthy()
-  expect(await screen.findByRole('button', { name: /^Quay lại$/ }, t)).toBeTruthy()
+  expect(await screen.findByRole('button', { name: /^Quay lại$/ }, slow)).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: /^Quay lại$/ }))
   expect(await screen.findByText(/🏫 Đường Nguyễn Du/, {}, t)).toBeTruthy()
   fireEvent.click(screen.getByText(/🏫 Đường Nguyễn Du/))

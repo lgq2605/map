@@ -70,7 +70,8 @@ const AREA_TEXT = '#ff5147'
 // phủ đúng thân đường để người xem thấy rõ hình dáng con đường trên nền bản đồ.
 const ROAD = '#1e90ff'
 // Đường dự phòng cho TẤT CẢ 3 con đường khi chưa có/không tải được dữ liệu OSM:
-// nét xanh dương 40% vẫn hiện đúng trên từng con đường (xem FALLBACK_* trong data/geo.ts).
+// nét xanh dương 40% vẫn hiện đúng trên con đường được chọn (xem FALLBACK_* trong data/geo.ts).
+// (Cũng dùng để canh khung nhìn ôm cả 3 đường ở màn TP.HCM — màn đó không vẽ nét xanh.)
 const FALLBACKS: Record<RoadScene, LL[]> = { hue: FALLBACK_HUE, du: FALLBACK_DU, namky: FALLBACK_NAMKY }
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
 
@@ -160,7 +161,8 @@ const islandTag = (text: string, at: L.LatLngTuple, side: 'left' | 'right' | 'in
 // nét liền màu xanh dương mờ 40%, không phát sáng — phủ đúng thân đường để thấy rõ hình dáng.
 // Không tải được dữ liệu OSM thì dùng đường dự phòng FALLBACKS để nét sáng vẫn hiện đúng đường
 // (giống nhau ở cả 3 con đường — trước đây chỉ đường Nguyễn Huệ có nét dự phòng).
-// `w`: độ dày nét (mặc định khi xem một đường; màn TP.HCM dùng nét mảnh hơn).
+// Chỉ được gọi cho đường ĐANG ĐƯỢC CHỌN (màn TP.HCM chưa chọn gì thì không tô đường nào).
+// `w`: độ dày nét.
 function highlight(g: L.LayerGroup, sc: RoadScene, geo: GeoResult | null, w = 14) {
   const name = ROAD_OF[sc]
   const roads = roadsNamed(geo, name)
@@ -302,17 +304,15 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     if (scene === 'hcm' || road) {
       const show = (r: GeoResult | null) => {
         g.clearLayers()
-        if (scene === 'hcm') {
-          // Phóng tới TP.HCM: hiện cả 3 con đường (nét mảnh) để nhìn thấy vị trí từng đường
-          ;(['hue', 'du', 'namky'] as RoadScene[]).forEach(s => highlight(g, s, r, 6))
-        } else {
-          const sc = scene as RoadScene
-          highlight(g, sc, r)
-          if (sc === 'hue') L.marker(FOCUS.hue.c, { icon: pin('Đường Nguyễn Huệ') }).addTo(g)
-          if (sc === 'du') L.marker(SCHOOL_POS, { icon: schoolIcon(), zIndexOffset: 1000 }).addTo(g)
-          const mid = sc === 'namky' ? roadMiddle(r, ROAD_NAMKY) : null
-          if (mid) L.marker(mid, { icon: pin('Đường Nam Kỳ Khởi Nghĩa', 'red') }).addTo(g)
-        }
+        // Màn TP.HCM (chưa chọn đường nào): KHÔNG tô đường nào. Nét xanh dương chỉ hiện
+        // trên ĐÚNG con đường người xem vừa bấm chọn (hue / du / namky).
+        if (!road) return
+        const sc = scene as RoadScene
+        highlight(g, sc, r)
+        if (sc === 'hue') L.marker(FOCUS.hue.c, { icon: pin('Đường Nguyễn Huệ') }).addTo(g)
+        if (sc === 'du') L.marker(SCHOOL_POS, { icon: schoolIcon(), zIndexOffset: 1000 }).addTo(g)
+        const mid = sc === 'namky' ? roadMiddle(r, ROAD_NAMKY) : null
+        if (mid) L.marker(mid, { icon: pin('Đường Nam Kỳ Khởi Nghĩa', 'red') }).addTo(g)
       }
       show(geo.current)
       if (!geo.current) loadGeo().then(r => {

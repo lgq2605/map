@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { setMusic } from '../audio'
 import PaperPlane from '../components/PaperPlane'
 import { useTypewriter } from '../components/useTypewriter'
+import SceneFX from '../components/SceneFX'
 
 export default function EarthScene({ onDone }: { onDone: () => void }) {
   const globe = useRef<GlobeMethods>(undefined)
@@ -44,6 +45,7 @@ export default function EarthScene({ onDone }: { onDone: () => void }) {
           globe.current?.pointOfView({ lat: Math.random() * 100 - 40, lng: Math.random() * 360 - 180, altitude: 2.5 }, 0)
           const c = globe.current?.controls(); if (c) { c.autoRotate = true; c.autoRotateSpeed = 0.3; c.enableZoom = false } }}
         onGlobeClick={(_c, e) => start(e)} />
+      <SceneFX stars />
       <div className={'pointer-events-none absolute inset-0 transition-opacity duration-700 ' + (plane ? 'opacity-0' : '')}>
         <motion.h1 initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2 }}
           className="absolute inset-x-0 top-[10%] px-4 text-center font-serif text-3xl font-extrabold text-gold glow md:text-6xl">Một cái tên, ngàn câu chuyện</motion.h1>

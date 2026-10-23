@@ -11,6 +11,7 @@ import HCMCButton from '../components/HCMCButton'
 import NguyenHueScene from './NguyenHueScene'
 import NguyenDuScene from './NguyenDuScene'
 import NamKyScene from './NamKyScene'
+import SceneFX from '../components/SceneFX'
 
 const FOCUS: Record<string, { c: L.LatLngTuple; z: number }> = {
   menu: { c: [16, 107.8], z: 5 }, hcm: { c: [10.7777, 106.7009], z: 14 },
@@ -331,6 +332,8 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
           các class Leaflet tự thêm (leaflet-container, ...) bị xoá và ô bản đồ co về 0px do Tailwind (img { max-width: 100% }). */}
       <div className={'relative z-0 w-full ' + (panel ? 'h-[42%] md:h-full' : 'h-full')}>
         <div ref={el} className="h-full w-full bg-navy" />
+        {/* Trang trí: hạt sáng + noise + vignette phủ lên bản đồ (pointer-events: none, nằm trong khung bản đồ nên luôn dưới bảng thông tin) */}
+        <div className="pointer-events-none absolute inset-0 z-[900]"><SceneFX /></div>
       </div>
       {failed && <div className="absolute left-1/2 top-20 z-20 w-[min(90%,32rem)] -translate-x-1/2 rounded-lg bg-navy/90 px-4 py-2 text-center text-sm text-gold">Không tải được ảnh bản đồ nền. Hãy kiểm tra mạng, tắt VPN hoặc trình chặn quảng cáo rồi tải lại trang.</div>}
       {/* Màn toàn quốc: nút thành phố Hồ Chí Minh — bấm để phóng to TP.HCM và chọn 1 trong 3 con đường */}

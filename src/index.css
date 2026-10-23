@@ -6,8 +6,9 @@
   --color-vred: #da251d;
   --color-gold: #ffcd00;
   --color-paper: #f5f0e1;
+  --bg-radial: radial-gradient(ellipse at 50% 45%, #1a1f3a 0%, #0a0e27 55%, #04060f 100%);
 }
-html, body, #root { height: 100%; margin: 0; background: #0a0e27; color: #f5f0e1; font-family: Inter, sans-serif; overflow: hidden; overscroll-behavior: none; }
+html, body, #root { height: 100%; margin: 0; background: #0a0e27 var(--bg-radial) no-repeat fixed; color: #f5f0e1; font-family: Inter, sans-serif; overflow: hidden; overscroll-behavior: none; }
 .glow { text-shadow: 0 0 18px #ffcd0099; }
 .pulse { width: 22px; height: 22px; border-radius: 50%; background: #ffcd00; box-shadow: 0 0 0 0 #ffcd00aa; animation: pulse 1.6s infinite; transform: translate(-50%, -50%); }
 .pulse.red { background: #da251d; box-shadow: 0 0 0 0 #da251daa; }
@@ -28,9 +29,34 @@ html, body, #root { height: 100%; margin: 0; background: #0a0e27; color: #f5f0e1
   pointer-events: none;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
 }
-.leaflet-container { background: #0a0e27 !important; }
+.leaflet-container { background: #0a0e27 var(--bg-radial) !important; }
 .leaflet-container img.leaflet-tile { mix-blend-mode: normal !important; }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 .march { animation: march 1s linear infinite; }
 @keyframes march { to { stroke-dashoffset: -16; } }
 @media (prefers-reduced-motion: reduce) { .march { animation: none; } }
+
+/* ================= BƯỚC 1: lớp nền nhiều tầng (xem components/SceneFX.tsx) =================
+   Layer 1 gradient (ở trên) → Layer 2 noise → Layer 3 hạt sáng (canvas) → Layer 4 sao nhấp nháy (Scene 1) → vignette. */
+.fx-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.fx-root { z-index: 0; }
+.fx-particles { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* Noise fractal 3% (đổi độ đậm bằng --noise-opacity) */
+.fx-noise {
+  --noise-opacity: 0.03;
+  opacity: var(--noise-opacity);
+  background-size: 200px 200px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+/* Vignette tối 4 góc cho chiều sâu */
+.fx-vignette { box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.6); }
+@media (max-width: 767px) { .fx-vignette { box-shadow: inset 0 0 110px rgba(0, 0, 0, 0.55); } }
+/* Sao nhấp nháy */
+.fx-star {
+  position: absolute; border-radius: 50%; background: #f5f0e1; opacity: 0.2;
+  box-shadow: 0 0 6px 1px rgba(245, 240, 225, 0.55);
+  animation: twinkle ease-in-out infinite;
+}
+.fx-star.gold { background: #ffcd00; box-shadow: 0 0 7px 1px rgba(255, 205, 0, 0.6); }
+@keyframes twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .fx-star { animation: none; opacity: 0.5; } }

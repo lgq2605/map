@@ -6,11 +6,17 @@ export interface GeoResult { roads: Road[]; school: LL | null }
 
 export const ROAD_HUE = 'Nguyễn Huệ'
 export const ROAD_DU = 'Nguyễn Du'
+export const ROAD_NAMKY = 'Nam Kỳ Khởi Nghĩa'
 
-// Khung tìm kiếm (nam, tây, bắc, đông) bao quanh khu vực Nguyễn Huệ – Nguyễn Du, Quận 1
-const BBOX = '10.768,106.688,10.790,106.712'
+// So tên đường không phân biệt hoa/thường và bỏ chữ "Đường " ở đầu (OSM đặt tên không thống nhất)
+const baseName = (n: string) => n.replace(/^Đường\s+/i, '').trim().toLocaleLowerCase('vi')
+export const roadsNamed = (geo: GeoResult | null, name: string) =>
+  (geo?.roads ?? []).filter(r => baseName(r.name ?? '') === baseName(name))
+
+// Khung tìm kiếm (nam, tây, bắc, đông) bao quanh trung tâm Quận 1 – Quận 3: đủ rộng để chứa cả đường Nam Kỳ Khởi Nghĩa
+const BBOX = '10.762,106.672,10.796,106.714'
 const QUERY = `[out:json][timeout:25];
-(way["highway"]["name"~"^(${ROAD_HUE}|${ROAD_DU})$"](${BBOX}););
+(way["highway"]["name"~"^(Đường )?(${ROAD_HUE}|${ROAD_DU}|${ROAD_NAMKY})$",i](${BBOX}););
 out geom;
 nwr["amenity"="school"]["name"~"Trần Đại Nghĩa|Tran Dai Nghia|Taberd"](${BBOX});
 out center;`
@@ -19,13 +25,14 @@ const ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
   'https://overpass.private.coffee/api/interpreter',
 ]
-const CACHE_KEY = 'hanhtrinh-geo-v1'
+const CACHE_KEY = 'hanhtrinh-geo-v2' // v2: có thêm đường Nam Kỳ Khởi Nghĩa (bản cũ trong localStorage không có)
 const CACHE_MS = 30 * 24 * 3600 * 1000
 
 // Dự phòng khi không tải được dữ liệu: trục đường Nguyễn Huệ (dài 670 m, tâm 10.774112, 106.703619 theo Wikipedia,
 // chạy từ UBND TP.HCM ở phía tây bắc tới bến Bạch Đằng ở phía đông nam).
-// Tuỳ chọn: dán toạ độ trường nếu muốn có ghim cả khi không tải được dữ liệu (Google Maps: bấm chuột phải vào trường → bấm vào toạ độ để sao chép).
-export const FALLBACK_SCHOOL: LL | null = null
+// Vị trí XẤP XỈ của trường (53 Nguyễn Du), chỉ dùng khi không tải được dữ liệu OSM để ghim trường luôn hiện.
+// Muốn chính xác hơn: Google Maps → bấm chuột phải vào trường → bấm vào toạ độ để sao chép rồi dán vào đây.
+export const FALLBACK_SCHOOL: LL | null = [10.7797, 106.6987]
 
 export const FALLBACK_HUE: LL[] = [[10.776283, 106.701491], [10.771941, 106.705747]]
 
@@ -57,10 +64,10 @@ async function post(url: string, body: string, ms = 14000) {
   } finally { clearTimeout(timer) }
 }
 
-// Nếu OSM không có đối tượng "trường" thì hỏi Nominatim địa chỉ 53 Nguyễn Du
+// Nếu OSM không có đối tượng "trường" thì hỏi Nominatim địa chỉ 53 Nguyễn Du, Sài Gòn, Hồ Chí Minh
 async function findSchoolByAddress(): Promise<LL | null> {
   try {
-    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&bounded=1&viewbox=106.688,10.790,106.712,10.768&q=' + encodeURIComponent('53 Nguyễn Du, Bến Nghé, Quận 1, Thành phố Hồ Chí Minh')
+    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&bounded=1&viewbox=106.672,10.796,106.714,10.762&q=' + encodeURIComponent('53 Nguyễn Du, Hồ Chí Minh')
     const r = await fetch(url)
     const j = await r.json()
     return j?.[0] ? [Number(j[0].lat), Number(j[0].lon)] : null

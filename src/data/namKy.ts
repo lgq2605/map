@@ -1,5 +1,5 @@
 export const namKy = {
-  title: 'Nam Kỳ Khởi Nghĩa — 23/11/1940',
+  title: 'Đường Nam Kỳ Khởi Nghĩa — 23/11/1940',
   origin: 'Được đặt tên để tưởng nhớ và ghi dấu cuộc Khởi nghĩa Nam Kỳ ngày 23/11/1940 — một sự kiện quan trọng trong lịch sử đấu tranh giành độc lập của nhân dân Việt Nam dưới sự lãnh đạo của Đảng Cộng sản Đông Dương.',
   facts: [
     ['Thời gian', 'Ngày 23 tháng 11 năm 1940.'],

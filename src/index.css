@@ -18,4 +18,3 @@ html, body, #root { height: 100%; margin: 0; background: #0a0e27; color: #f5f0e1
 .march { animation: march 1s linear infinite; }
 @keyframes march { to { stroke-dashoffset: -16; } }
 @media (prefers-reduced-motion: reduce) { .march { animation: none; } }
-.road-glow { filter: drop-shadow(0 0 5px #ff2d2d); }

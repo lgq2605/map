@@ -12,8 +12,10 @@ export const backCls = 'rounded-full border border-paper/30 px-4 py-2 text-sm tr
 // Nút hiện sau khi xem hết thông tin: quay về màn chọn 1 trong 3 con đường
 export const againCls = 'mt-8 min-h-11 w-full rounded-full bg-gold px-4 py-3 font-semibold text-navy transition duration-200 hover:scale-105'
 
-export default function LocationPanel({ data, onBack }: { data: LocationData; onBack: () => void }) {
+export default function LocationPanel({ data, onBack, onStep }: { data: LocationData; onBack: () => void; onStep?: (step: number) => void }) {
   const [step, setStep] = useState(0)
+  // Chuyển mốc: báo lại cho bản đồ (đường Nguyễn Du thay khung nhìn theo mốc)
+  const go = (s: number) => { setStep(s); onStep?.(s) }
   // Cuộn riêng khung bảng (scrollIntoView có thể làm cả trang bị xô lệch trên điện thoại)
   const { box, inner } = useFollowScroll(step)
   return (
@@ -23,14 +25,14 @@ export default function LocationPanel({ data, onBack }: { data: LocationData; on
         <h2 className="my-5 font-serif text-3xl font-extrabold text-gold glow">{data.title}</h2>
         <ol className="ml-2 space-y-8 border-l-2 border-vred pl-6">
           {data.milestones.slice(0, Math.min(step, 3) + 1).map((m, i) => (
-            <TimelineStep key={i} m={m} active={i === step} isLast={i === 3} onNext={() => setStep(step + 1)} />
+            <TimelineStep key={i} m={m} active={i === step} isLast={i === 3} onNext={() => go(step + 1)} />
           ))}
         </ol>
         {step >= 4 && <FigureCard f={data.figure} />}
-        {/* Xem hết thông tin (cả nhân vật): nút quay lại chọn 1 trong 3 con đường */}
+        {/* Xem hết thông tin (cả nhân vật): nút quay lại màn chọn 3 con đường */}
         {step >= 4 && (
           <motion.button initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onClick={onBack} className={againCls}>
-            🔁 Quay lại chọn 3 con đường
+            Quay lại
           </motion.button>
         )}
       </div>

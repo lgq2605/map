@@ -11,6 +11,6 @@ export const nguyenHue: LocationData = {
   ],
   figure: { name: 'Quang Trung – Nguyễn Huệ', query: ['Quang Trung Nguyễn Huệ emperor', 'Quang Trung'], lines: [
     '1753 – 16/9/1792, hưởng thọ 39 tuổi',
-    '🏡 Quê quán: Thôn Kiên Mỹ, ấp Kiên Thành, huyện Hoài Nhơn, phủ Quy Nhơn (nay thuộc xã Bình Thành, huyện Tây Sơn, tỉnh Bình Định)',
+    '🏡 Quê quán: Thôn Kiên Mỹ, ấp Kiên Thành, huyện Hoài Nhơn, phủ Quy Nhơn (nay thuộc xã Bình An, tỉnh Gia Lai)',
     '👨‍👩‍👦 Gia đình: 3 anh em (Nguyễn Nhạc, Nguyễn Lữ, Nguyễn Huệ)' ] },
 }

@@ -30,21 +30,27 @@ test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đườn
   for (let i = 0; i < 3; i++) fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, t))
   fireEvent.click(await screen.findByRole('button', { name: /Xem nhân vật/ }, t))
   expect(await screen.findByRole('heading', { name: /Quang Trung – Nguyễn Huệ/ })).toBeTruthy()
-  // xem hết thông tin (cả nhân vật): có nút quay lại chọn 3 con đường
-  expect(await screen.findByRole('button', { name: /Quay lại chọn 3 con đường/ }, t)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: /Quay lại chọn 3 con đường/ }))
+  // xem hết thông tin (cả nhân vật): có nút Quay lại
+  expect(await screen.findByRole('button', { name: /^Quay lại$/ }, t)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: /^Quay lại$/ }))
   // quay ĐÚNG về màn chọn 3 con đường (không quay ra bản đồ toàn quốc)
   expect(await screen.findByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/, {}, t)).toBeTruthy()
+  // Nam Kỳ: lịch sử 3 phần, lần lượt qua nút "Tiếp theo", cuối cùng có ảnh sự kiện + nút Quay lại
   fireEvent.click(screen.getByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/))
-  expect(await screen.findByText(/Khởi nghĩa Nam Kỳ là gì/)).toBeTruthy()
-  expect(await screen.findByRole('button', { name: /Quay lại chọn 3 con đường/ }, t)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: /Quay lại chọn 3 con đường/ }))
+  expect(await screen.findByRole('heading', { name: '🔥 Đường Nam Kỳ Khởi Nghĩa' })).toBeTruthy()
+  expect(await screen.findByText('📖 Nguồn gốc tên đường')).toBeTruthy()
+  fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, t))
+  expect(await screen.findByText('❓ Khởi nghĩa Nam Kỳ là gì?')).toBeTruthy()
+  fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, t))
+  expect(await screen.findByText(/Khi nào con đường được đặt tên/)).toBeTruthy()
+  expect(await screen.findByRole('button', { name: /^Quay lại$/ }, t)).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: /^Quay lại$/ }))
   expect(await screen.findByText(/🏫 Đường Nguyễn Du/, {}, t)).toBeTruthy()
   fireEvent.click(screen.getByText(/🏫 Đường Nguyễn Du/))
   expect(await screen.findByText('Năm 1874')).toBeTruthy()
-  // logo trường (mũ cử nhân + tên trường) luôn hiện ở toạ độ đã chỉ định, kể cả khi không tải được dữ liệu OSM
-  expect(document.body.textContent).toContain('TRƯỜNG TRUNG HỌC CƠ SỞ VÀ TRUNG HỌC PHỔ THÔNG TRẦN ĐẠI NGHĨA')
-  expect(document.body.textContent).toContain('53 Nguyễn Du, Sài Gòn, Hồ Chí Minh, Việt Nam')
+  // ghim trường: CHỈ còn logo (không còn chữ tên trường/địa chỉ), logo là ảnh tròn tại vị trí ghim
+  expect(document.body.textContent).not.toContain('TRƯỜNG TRUNG HỌC CƠ SỞ')
+  expect(document.querySelector('img[alt^="Logo trường THCS và THPT"]')).toBeTruthy()
 })
 
 test('màn tổng quan: khung các đảo, không còn khung Nam Bộ', async () => {

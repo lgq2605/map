@@ -28,13 +28,22 @@ const ENDPOINTS = [
 const CACHE_KEY = 'hanhtrinh-geo-v2' // v2: có thêm đường Nam Kỳ Khởi Nghĩa (bản cũ trong localStorage không có)
 const CACHE_MS = 30 * 24 * 3600 * 1000
 
-// Dự phòng khi không tải được dữ liệu: trục đường Nguyễn Huệ (dài 670 m, tâm 10.774112, 106.703619 theo Wikipedia,
-// chạy từ UBND TP.HCM ở phía tây bắc tới bến Bạch Đằng ở phía đông nam).
-// Vị trí XẤP XỈ của trường (53 Nguyễn Du), chỉ dùng khi không tải được dữ liệu OSM để ghim trường luôn hiện.
-// Muốn chính xác hơn: Google Maps → bấm chuột phải vào trường → bấm vào toạ độ để sao chép rồi dán vào đây.
-export const FALLBACK_SCHOOL: LL | null = [10.7797, 106.6987]
-
+// Đường dự phòng khi KHÔNG tải được dữ liệu OSM: nét tô sáng vẫn phải hiện đúng trên từng con đường
+// (giống đường Nguyễn Huệ). Toạ độ rút gọn từ hình dạng thật trên OpenStreetMap (sai số < 30 m):
+// - Nguyễn Huệ: trục UBND TP.HCM → bến Bạch Đằng.
+// - Nguyễn Du: chợ Bến Thành → góc vườn thú Thảo Cầm Viên (đi ngang qua trường Trần Đại Nghĩa).
+// - Nam Kỳ Khởi Nghĩa: Võ Văn Kiệt → giao Điện Biên Phủ (đường này gần như chạy thẳng một trục).
 export const FALLBACK_HUE: LL[] = [[10.776283, 106.701491], [10.771941, 106.705747]]
+export const FALLBACK_DU: LL[] = [
+  [10.772077, 106.692315], [10.774911, 106.696269], [10.780187, 106.70106],
+  [10.782661, 106.701747], [10.78473, 106.703688],
+]
+export const FALLBACK_NAMKY: LL[] = [[10.769143, 106.701944], [10.775821, 106.699046], [10.786401, 106.687676]]
+
+// Đoạn Nam Kỳ Khởi Nghĩa NGAY TRƯỚC Dinh Độc Lập (giao Lê Duẩn → giao Nguyễn Đình Chiểu) bị OSM
+// để trống tên đường, nên truy vấn theo tên sẽ THIẾU đúng khúc này. Luôn tô nốt đoạn này để nét
+// sáng chạy liền suốt con đường (chỉ vẽ khi đã có dữ liệu OSM; đường dự phòng đã gồm sẵn khúc này).
+export const NAMKY_FILL: LL[] = [[10.779567, 106.695], [10.780475, 106.694023], [10.781473, 106.692943]]
 
 // Chuyển kết quả Overpass thành dữ liệu dùng được (tách riêng để dễ kiểm thử)
 export function parseOverpass(json: any): GeoResult {

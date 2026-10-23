@@ -4,7 +4,7 @@ import gsap from 'gsap'
 import 'leaflet/dist/leaflet.css'
 import type { Scene } from '../data/types'
 import vietnam from '../data/vietnam.geo.json'
-import { loadGeo, roadsNamed, FALLBACK_HUE, ROAD_HUE, ROAD_DU, ROAD_NAMKY, type GeoResult } from '../data/geo'
+import { loadGeo, roadsNamed, FALLBACK_HUE, FALLBACK_DU, FALLBACK_NAMKY, NAMKY_FILL, ROAD_HUE, ROAD_DU, ROAD_NAMKY, type GeoResult, type LL } from '../data/geo'
 import schoolLogo from '../assets/school-logo.png'
 import ChoiceModal from '../components/ChoiceModal'
 import HCMCButton from '../components/HCMCButton'
@@ -69,6 +69,9 @@ const AREA_TEXT = '#ff5147'
 // Đường đang xem: nét LIỀN màu xanh dương, mờ 40%, KHÔNG phát sáng —
 // phủ đúng thân đường để người xem thấy rõ hình dáng con đường trên nền bản đồ.
 const ROAD = '#1e90ff'
+// Đường dự phòng cho TẤT CẢ 3 con đường khi chưa có/không tải được dữ liệu OSM:
+// nét xanh dương 40% vẫn hiện đúng trên từng con đường (xem FALLBACK_* trong data/geo.ts).
+const FALLBACKS: Record<RoadScene, LL[]> = { hue: FALLBACK_HUE, du: FALLBACK_DU, namky: FALLBACK_NAMKY }
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services'
 
 export const tl = (url: string, o: L.TileLayerOptions) => {
@@ -155,15 +158,20 @@ const islandTag = (text: string, at: L.LatLngTuple, side: 'left' | 'right' | 'in
 
 // Tô sáng đường đang xem (dữ liệu hình dạng đường lấy từ OpenStreetMap, xem data/geo.ts):
 // nét liền màu xanh dương mờ 40%, không phát sáng — phủ đúng thân đường để thấy rõ hình dáng.
+// Không tải được dữ liệu OSM thì dùng đường dự phòng FALLBACKS để nét sáng vẫn hiện đúng đường
+// (giống nhau ở cả 3 con đường — trước đây chỉ đường Nguyễn Huệ có nét dự phòng).
 // `w`: độ dày nét (mặc định khi xem một đường; màn TP.HCM dùng nét mảnh hơn).
 function highlight(g: L.LayerGroup, sc: RoadScene, geo: GeoResult | null, w = 14) {
   const name = ROAD_OF[sc]
-  let roads = roadsNamed(geo, name)
-  if (!roads.length && sc === 'hue') roads = [{ name, pts: FALLBACK_HUE, area: false }]
-  roads.forEach(r => {
+  const roads = roadsNamed(geo, name)
+  const lines = roads.length ? roads : [{ name, pts: FALLBACKS[sc], area: false }]
+  lines.forEach(r => {
     if (r.area) L.polygon(r.pts, { color: ROAD, weight: 2, opacity: 0.4, fillColor: ROAD, fillOpacity: 0.4, interactive: false }).addTo(g)
     else L.polyline(r.pts, { color: ROAD, weight: w, opacity: 0.4, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(g)
   })
+  // Khúc đường Nam Kỳ Khởi Nghĩa trước Dinh Độc Lập bị OSM bỏ trống tên: luôn tô nốt cho liền mạch
+  // (khi dùng đường dự phòng thì nét dự phòng đã chạy suốt cả con đường, khỏi tô đè làm đậm màu).
+  if (sc === 'namky' && roads.length) L.polyline(NAMKY_FILL, { color: ROAD, weight: w, opacity: 0.4, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(g)
 }
 
 // Điểm giữa của đoạn đường dài nhất (để đặt nhãn tên đường)
@@ -240,22 +248,28 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     // Riêng Nguyễn Du: từ mốc 1976 trở đi (duStep ≥ 1) thì phóng to TRƯỜNG nhưng vẫn thấy một phần khu vực xung quanh.
     const aim = (): { c: L.LatLngTuple; z: number } => {
       if (scene === 'hcm') {
-        const pts = [ROAD_HUE, ROAD_DU, ROAD_NAMKY].flatMap(n => roadsNamed(geo.current, n).flatMap(r => r.pts))
+        // Có dữ liệu OSM thì ôm cả 3 con đường theo hình thật; chưa có thì dùng đường dự phòng
+        const pts = (['hue', 'du', 'namky'] as RoadScene[]).flatMap(sc => {
+          const rs = roadsNamed(geo.current, ROAD_OF[sc])
+          return (rs.length ? rs.flatMap(r => r.pts) : FALLBACKS[sc])
+        })
         return (pts.length ? fitView(m, pts, 15) : null) ?? f
       }
       if (road) {
         if (scene === 'du' && duStep.current >= 1) {
-          // Mốc 1976 trở đi: phóng to trường, vẫn thấy được vùng quanh trường (cấp 16).
-          // Chừa trước bên phải cho bảng thông tin trên máy tính (tương tự fitView).
+          // Mốc 1976 trở đi: PHÓNG TO sâu vào trường (cấp 18 — cao hơn khung nhìn đường cấp ≤17
+          // ở mốc 1874, nên bản đồ luôn PHÓNG TO khi chuyển mốc chứ không thu nhỏ), vẫn còn thấy
+          // vùng quanh trường. Chừa trước bên phải cho bảng thông tin trên máy tính (tương tự fitView).
+          const Z = 18
           const pad = matchMedia('(min-width: 768px)').matches ? Math.min(448, m.getSize().x * 0.46) : 0
           let c: L.LatLng = L.latLng(SCHOOL_POS)
-          if (pad) c = m.unproject(m.project(c, 16).add(L.point(pad / 2, 0)), 16)
-          return { c: [c.lat, c.lng], z: 16 }
+          if (pad) c = m.unproject(m.project(c, Z).add(L.point(pad / 2, 0)), Z)
+          return { c: [c.lat, c.lng], z: Z }
         }
-        const name = ROAD_OF[scene as RoadScene]
-        let rs = roadsNamed(geo.current, name)
-        if (!rs.length && scene === 'hue') rs = [{ name, pts: FALLBACK_HUE, area: false }]
-        let pts = rs.flatMap(r => r.pts)
+        const sc = scene as RoadScene
+        const rs = roadsNamed(geo.current, ROAD_OF[sc])
+        // Có dữ liệu OSM: ôm trọn hình thật; chưa có: dùng đường dự phòng (xem FALLBACKS)
+        let pts = (rs.length ? rs.flatMap(r => r.pts) : FALLBACKS[sc].slice()) as L.LatLngTuple[]
         if (scene === 'du') pts = pts.concat([SCHOOL_POS]) // thấy trọn cả đường lẫn logo trường
         if (pts.length) {
           // Trên máy tính, bảng thông tin che mất bên phải (tối đa 28rem): chừa chỗ cho nó

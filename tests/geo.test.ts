@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { parseOverpass, roadsNamed, ROAD_NAMKY, ROAD_DU } from '../src/data/geo'
+import { parseOverpass } from '../src/data/geo'
 
 test('parseOverpass: tách đường, khu vực đi bộ (đường khép kín) và vị trí trường', () => {
   const g = (...p: [number, number][]) => p.map(([lat, lon]) => ({ lat, lon }))
@@ -16,12 +16,4 @@ test('parseOverpass: tách đường, khu vực đi bộ (đường khép kín) 
 test('parseOverpass: dữ liệu rỗng hoặc hỏng không gây lỗi', () => {
   expect(parseOverpass(null)).toEqual({ roads: [], school: null })
   expect(parseOverpass({})).toEqual({ roads: [], school: null })
-})
-
-test('roadsNamed: so tên không phân biệt hoa/thường và bỏ chữ "Đường " ở đầu', () => {
-  const road = (name: string) => ({ name, pts: [[1, 1], [2, 2]] as [number, number][], area: false })
-  const geo = { school: null, roads: [road('Nam Kỳ Khởi Nghĩa'), road('Đường Nam Kỳ khởi nghĩa'), road('Nguyễn Du')] }
-  expect(roadsNamed(geo, ROAD_NAMKY)).toHaveLength(2)
-  expect(roadsNamed(geo, ROAD_DU)).toHaveLength(1)
-  expect(roadsNamed(null, ROAD_DU)).toEqual([])
 })

@@ -22,8 +22,7 @@ export default function App() {
         )}
       </AnimatePresence>
       <div className="fixed right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-40 flex gap-2">
-        {/* Nút về bản đồ Việt Nam: hiện từ màn TP.HCM trở vào trong (màn menu đã là bản đồ Việt Nam) */}
-        {scene !== 'earth' && scene !== 'menu' && <BackToVietnamButton onClick={() => setScene('menu')} />}
+        {scene !== 'earth' && <BackToVietnamButton onClick={() => setScene('menu')} />}
         <MusicButton />
       </div>
     </>

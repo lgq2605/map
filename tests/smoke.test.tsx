@@ -11,7 +11,7 @@ vi.mock('react-globe.gl', () => ({
 }))
 
 const t = { timeout: 9000 }
-// Nam Kỳ gõ chữ cùng tốc độ 18ms/chữ như 2 đường kia (đoạn dài ~500 chữ ≈ 9s, 5 ý ≈ 16s)
+// Nam Kỳ gõ chữ nhanh hơn (6ms/chữ): đoạn dài ~500 chữ ≈ 3s, 5 ý ≈ 6s
 const slow = { timeout: 30000 }
 test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đường → Nguyễn Huệ → Nam Kỳ → Nguyễn Du', async () => {
   render(<App />)
@@ -23,7 +23,7 @@ test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đườn
   // bấm nút: phóng tới TP.HCM và hiện 3 con đường
   fireEvent.click(screen.getByRole('button', { name: /Thành phố Hồ Chí Minh/ }))
   expect(await screen.findByText(/🛣️ Đường Nguyễn Huệ/, {}, t)).toBeTruthy()
-  expect(screen.getByText(/🏫 Đường Nguyễn Du/)).toBeTruthy()
+  expect(screen.getByText(/🏫 Trường THCS và THPT Trần Đại Nghĩa/)).toBeTruthy()
   expect(screen.getByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/)).toBeTruthy()
   fireEvent.click(screen.getByText(/🛣️ Đường Nguyễn Huệ/))
   // Street View không tự bật: chỉ có nút, chưa có khung nhúng
@@ -40,6 +40,7 @@ test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đườn
   // Nam Kỳ: lịch sử 3 phần, lần lượt qua nút "Tiếp theo", cuối cùng có ảnh sự kiện + nút Quay lại
   fireEvent.click(screen.getByText(/🔥 Đường Nam Kỳ Khởi Nghĩa/))
   expect(await screen.findByRole('heading', { name: '🔥 Đường Nam Kỳ Khởi Nghĩa' })).toBeTruthy()
+  expect(await screen.findByRole('button', { name: /Street View/ })).toBeTruthy()
   expect(await screen.findByText('📖 Nguồn gốc tên đường')).toBeTruthy()
   fireEvent.click(await screen.findByRole('button', { name: /Tiếp theo/ }, slow))
   expect(await screen.findByText('❓ Khởi nghĩa Nam Kỳ là gì?')).toBeTruthy()
@@ -52,9 +53,12 @@ test('hành trình đầy đủ: địa cầu → nút TP.HCM → 3 con đườn
   expect(await screen.findByText(/Khi nào con đường được đặt tên/)).toBeTruthy()
   expect(await screen.findByRole('button', { name: /^Quay lại$/ }, slow)).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: /^Quay lại$/ }))
-  expect(await screen.findByText(/🏫 Đường Nguyễn Du/, {}, t)).toBeTruthy()
-  fireEvent.click(screen.getByText(/🏫 Đường Nguyễn Du/))
+  expect(await screen.findByText(/🏫 Trường THCS và THPT Trần Đại Nghĩa/, {}, t)).toBeTruthy()
+  fireEvent.click(screen.getByText(/🏫 Trường THCS và THPT Trần Đại Nghĩa/))
   expect(await screen.findByText('Năm 1874')).toBeTruthy()
+  // trường có 2 nút: mô hình 3D và Street View (không tự bật)
+  expect(await screen.findByRole('button', { name: /Mô hình 3D/ })).toBeTruthy()
+  expect(screen.getByRole('button', { name: /Street View/ })).toBeTruthy()
   // ghim trường: CHỈ còn logo (không còn chữ tên trường/địa chỉ), logo là ảnh tròn tại vị trí ghim
   expect(document.body.textContent).not.toContain('TRƯỜNG TRUNG HỌC CƠ SỞ')
   expect(document.querySelector('img[alt^="Logo trường THCS và THPT"]')).toBeTruthy()

@@ -4,7 +4,7 @@ type P = { x: number; y: number }
 type Spark = { x: number; y: number; vx: number; vy: number; life: number; r: number }
 
 // Máy bay giấy bay theo đường cong Bézier rồi "lao vào" địa cầu: nhỏ dần, mờ dần và biến mất đúng tại Việt Nam.
-// Vẽ: SVG gấp giấy 3 tầng sáng–tối, vệt trail mờ dần (đoạn nối) và vài hạt nhỏ rơi dọc đường bay. Không blur/glow cho nhẹ.
+// Vẽ: SVG máy bay giấy cổ điển (cánh sáng/tối + sống gấp + ky), vệt trail mờ dần (đoạn nối) và vài hạt nhỏ rơi dọc đường bay. Không blur/glow cho nhẹ.
 export default function PaperPlane({ from, onNear, onLand }: { from: P; onNear: () => void; onLand?: () => void }) {
   const [pts, setPts] = useState<P[]>([from])
   const [ang, setAng] = useState(0)
@@ -39,12 +39,14 @@ export default function PaperPlane({ from, onNear, onLand }: { from: P; onNear: 
         {pts.slice(1).map((q, i) => <line key={i} x1={pts[i].x} y1={pts[i].y} x2={q.x} y2={q.y} stroke="#f5f0e1" strokeLinecap="round" strokeWidth={1 + (i / pts.length) * 3} opacity={(i / pts.length) * 0.7} />)}
         {sparks.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#f5f0e1" opacity={s.life * 0.8} />)}
       </svg>
-      <svg viewBox="0 0 48 24" width="46" style={{ position: 'absolute', left: p.x, top: p.y, transform: `translate(-50%,-50%) rotate(${ang}deg) scale(${scale})` }}>
-        {/* giấy gấp 3 tầng: cánh trên sáng · sống giữa trung tính · cánh dưới tối */}
-        <polygon points="2,3 46,12 14,12" fill="#fffaf0" />
-        <polygon points="14,12 46,12 8,17" fill="#cfc2a0" />
-        <polygon points="2,21 46,12 8,17" fill="#8f8466" />
-        <path d="M14 12 L46 12 M8 17 L46 12" stroke="rgba(60,50,30,.55)" strokeWidth=".7" />
+      <svg viewBox="0 0 64 40" width="56" style={{ position: 'absolute', left: p.x, top: p.y, transform: `translate(-50%,-50%) rotate(${ang}deg) scale(${scale})` }}>
+        {/* máy bay giấy cổ điển (nhìn chếch từ trên): mũi nhọn bên phải, hai cánh xếp thành chữ V quanh sống gấp,
+            "ky" gấp tối màu lòi ra bên dưới — vẽ từ trong ra ngoài: ky → cánh xa (sáng) → cánh gần (vừa) */}
+        <polygon points="63,20 27,21 22,38" fill="#8d9bb0" />
+        <polygon points="3,3 63,20 27,21" fill="#ffffff" />
+        <polygon points="27,21 63,20 7,33" fill="#d9e2ee" />
+        <path d="M3 3 L63 20 L7 33 L27 21 Z" fill="none" stroke="rgba(40,55,80,.45)" strokeWidth=".8" strokeLinejoin="round" />
+        <path d="M27 21 L63 20 M63 20 L22 38 M27 21 L22 38 M3 3 L41 19.4 M7 33 L45 20.5" stroke="rgba(40,55,80,.4)" strokeWidth=".7" strokeLinecap="round" />
       </svg>
     </div>
   )

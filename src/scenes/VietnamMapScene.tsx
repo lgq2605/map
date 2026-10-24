@@ -4,7 +4,7 @@ import gsap from 'gsap'
 import 'leaflet/dist/leaflet.css'
 import type { Scene } from '../data/types'
 import vietnam from '../data/vietnam.geo.json'
-import { loadGeo, roadsNamed, FALLBACK_HUE, FALLBACK_DU, FALLBACK_NAMKY, NAMKY_FILL, ROAD_HUE, ROAD_DU, ROAD_NAMKY, type GeoResult, type LL } from '../data/geo'
+import { loadGeo, roadsNamed, SV_HUE, SCHOOL_POS, FALLBACK_HUE, FALLBACK_DU, FALLBACK_NAMKY, NAMKY_FILL, ROAD_HUE, ROAD_DU, ROAD_NAMKY, type GeoResult, type LL } from '../data/geo'
 import schoolLogo from '../assets/school-logo.png'
 import ChoiceModal from '../components/ChoiceModal'
 import HCMCButton from '../components/HCMCButton'
@@ -14,15 +14,12 @@ import NamKyScene from './NamKyScene'
 
 const FOCUS: Record<string, { c: L.LatLngTuple; z: number }> = {
   menu: { c: [16, 107.8], z: 5 }, hcm: { c: [10.7777, 106.7009], z: 14 },
-  hue: { c: [10.7743, 106.7038], z: 17 }, du: { c: [10.7792138, 106.7010202], z: 17 },
+  hue: { c: SV_HUE.ll, z: 17 }, du: { c: SCHOOL_POS, z: 18.5 },
   namky: { c: [10.7795, 106.6925], z: 15 }, // chỉ dùng khi chưa có dữ liệu đường; có dữ liệu thì tự căn theo chiều dài đường
 }
 // Ba con đường ở TP.HCM (mỗi scene tương ứng một đường)
 const ROAD_OF = { hue: ROAD_HUE, du: ROAD_DU, namky: ROAD_NAMKY } as const
 type RoadScene = keyof typeof ROAD_OF
-
-// Vị trí logo trường do người dùng chỉ định trên bản đồ
-const SCHOOL_POS: [number, number] = [10.7792138, 106.7010202]
 
 // Nhãn tên PHƯỜNG HIỆN HÀNH của TP.HCM (theo sắp xếp đơn vị hành chính cấp xã từ 01/7/2025,
 // thay cho các quận cũ: Quận 1 → các phường Sài Gòn, Tân Định, Bến Thành, Cầu Ông Lãnh;
@@ -192,9 +189,8 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
   const [failed, setFailed] = useState(false)
   const tween = useRef<gsap.core.Tween | null>(null)
   const geo = useRef<GeoResult | null>(null)
-  // Đường Nguyễn Du: mốc đang xem (0 = 1874: thấy TRỌN con đường; ≥1 = từ 1976: phóng to trường
-  // nhưng vẫn thấy khu vực xung quanh). aimRef lưu hàm tính khung nhìn hiện tại để nút "Tiếp theo"
-  // trong bảng thông tin có thể lái bản đồ theo mốc.
+  // Trường (scene 'du'): mốc đang xem. Bản đồ luôn phóng sát vào trường từ mốc đầu; aimRef lưu hàm tính
+  // khung nhìn hiện tại để nút "Tiếp theo" trong bảng thông tin có thể căn lại bản đồ nếu bị lệch.
   const duStep = useRef(0)
   const aimRef = useRef<(() => { c: L.LatLngTuple; z: number }) | null>(null)
   // Xem xong một con đường: quay lại màn chọn 3 con đường ở TP.HCM (không quay ra toàn quốc)
@@ -249,7 +245,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
     b.vn.setStyle(scene === 'menu' ? FILL : LINE)
     // Đích zoom: tự căn để thấy TRỌN con đường (dữ liệu OSM có thể về muộn, xem loadGeo bên dưới).
     // Màn TP.HCM: ôm cả 3 con đường. Mỗi con đường: ôm trọn đường đó; Nguyễn Du tính cả vị trí logo trường.
-    // Riêng Nguyễn Du: từ mốc 1976 trở đi (duStep ≥ 1) thì phóng to TRƯỜNG nhưng vẫn thấy một phần khu vực xung quanh.
+    // Riêng trường (scene 'du'): luôn phóng to sát TRƯỜNG ngay từ đầu, vẫn thấy một phần khu vực xung quanh.
     const aim = (): { c: L.LatLngTuple; z: number } => {
       if (scene === 'hcm') {
         // Có dữ liệu OSM thì ôm cả 3 con đường theo hình thật; chưa có thì dùng đường dự phòng
@@ -260,11 +256,10 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
         return (pts.length ? fitView(m, pts, 15) : null) ?? f
       }
       if (road) {
-        if (scene === 'du' && duStep.current >= 1) {
-          // Mốc 1976 trở đi: PHÓNG TO sâu vào trường (cấp 18 — cao hơn khung nhìn đường cấp ≤17
-          // ở mốc 1874, nên bản đồ luôn PHÓNG TO khi chuyển mốc chứ không thu nhỏ), vẫn còn thấy
-          // vùng quanh trường. Chừa trước bên phải cho bảng thông tin trên máy tính (tương tự fitView).
-          const Z = 18
+        if (scene === 'du') {
+          // Trường Trần Đại Nghĩa: PHÓNG TO sâu vào trường NGAY TỪ ĐẦU (cấp 18.5), vẫn còn thấy vùng quanh trường.
+          // Chừa trước bên phải cho bảng thông tin trên máy tính (tương tự fitView).
+          const Z = 18.5
           const pad = matchMedia('(min-width: 768px)').matches ? Math.min(448, m.getSize().x * 0.46) : 0
           let c: L.LatLng = L.latLng(SCHOOL_POS)
           if (pad) c = m.unproject(m.project(c, Z).add(L.point(pad / 2, 0)), Z)
@@ -274,13 +269,11 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
         const rs = roadsNamed(geo.current, ROAD_OF[sc])
         // Có dữ liệu OSM: ôm trọn hình thật; chưa có: dùng đường dự phòng (xem FALLBACKS)
         let pts = (rs.length ? rs.flatMap(r => r.pts) : FALLBACKS[sc].slice()) as L.LatLngTuple[]
-        if (scene === 'du') pts = pts.concat([SCHOOL_POS]) // thấy trọn cả đường lẫn logo trường
         if (pts.length) {
           // Trên máy tính, bảng thông tin che mất bên phải (tối đa 28rem): chừa chỗ cho nó
           const pad = matchMedia('(min-width: 768px)').matches ? Math.min(448, m.getSize().x * 0.46) : 0
           return fitView(m, pts, scene === 'namky' ? 16 : 17, pad) ?? f
         }
-        if (scene === 'du') return { c: SCHOOL_POS, z: f.z }
       }
       return f
     }

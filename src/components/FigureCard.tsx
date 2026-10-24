@@ -21,11 +21,11 @@ export default function FigureCard({ f }: { f: Figure }) {
       <div aria-hidden="true" className="pointer-events-none absolute right-2 top-10 select-none text-[8rem] leading-none text-gold/[0.08]" style={{ fontFamily: '"Noto Serif TC", serif', fontWeight: 700 }}>{HAN(f.name)}</div>
       <div className="relative p-5">
         <p className="font-sub text-xs font-semibold uppercase tracking-[0.35em] text-vred" style={{ color: '#ff6a5e' }}>Hồ sơ nhân vật</p>
-        <div className="mt-3 flex flex-col gap-4 sm:flex-row">
+        <div className={'mt-3 flex flex-col gap-4 ' + (f.large ? '' : 'sm:flex-row')}>
           {/* fit contain: hiện TRỌN VẸN ảnh chân dung (không cắt mất đầu/thân như object-cover) */}
-          <div className="w-full flex-none px-1.5 sm:w-36"><Visual src={f.image} query={f.query} caption={f.name} fit="contain" variant="portrait" /></div>
+          <div className={'w-full flex-none px-1.5 ' + (f.large ? '' : 'sm:w-36')}><Visual src={f.image} query={f.query} caption={f.name} fit="contain" variant={f.large ? 'portraitLarge' : 'portrait'} /></div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-display text-2xl font-bold leading-tight tracking-[0.04em]"><span className="gold-text">{f.name}</span></h3>
+            <h3 className="font-serif text-2xl font-bold leading-tight tracking-[0.02em]"><span className="gold-text">{f.name}</span></h3>
             <Ornament className="mt-2 h-4 w-full max-w-[16rem]" />
             {first && <p className="mt-3 flex items-start gap-2 text-[15px] text-paper/90"><CalendarIcon className="mt-1 flex-none text-gold" width={18} height={18} /><span><Highlight text={first} /></span></p>}
           </div>

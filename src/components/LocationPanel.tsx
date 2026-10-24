@@ -47,7 +47,7 @@ export default function LocationPanel({ data, onBack, onStep }: { data: Location
   return (
     <motion.aside ref={box} initial={slide()} animate={{ x: 0, y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 120, damping: 22 }} className={panelCls}>
       <div ref={inner}>
-        <button onClick={onBack} className={backCls}>← Chọn con đường khác</button>
+        <button onClick={onBack} className={backCls}>← Chọn địa điểm khác</button>
         <h2 className="my-5 font-serif text-3xl font-extrabold leading-tight tracking-[0.02em]"><span className="gold-text">{data.title}</span></h2>
         <div ref={wrap} className="relative ml-2 pl-6">
           <div aria-hidden="true" className="axis absolute bottom-0 left-0 top-0 w-[2px] rounded-full" />

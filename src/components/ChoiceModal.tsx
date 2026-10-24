@@ -8,9 +8,9 @@ import { namKy } from '../data/namKy'
 type Pick = 'hue' | 'du' | 'namky'
 
 // Ba con đường ở TP. Hồ Chí Minh (tiêu đề giữ nguyên chữ + emoji vì là nội dung)
-const ROADS: { id: Pick; title: string; src?: string; query?: string[] }[] = [
+const ROADS: { id: Pick; title: string; sub?: string; src?: string; query?: string[] }[] = [
   { id: 'hue', title: '🛣️ Đường Nguyễn Huệ', query: ['Nguyễn Huệ pedestrian street Ho Chi Minh City', 'Nguyễn Huệ street'] },
-  { id: 'du', title: '🏫 Đường Nguyễn Du', query: ['Trường THCS và THPT Trần Đại Nghĩa', 'Taberd school'] },
+  { id: 'du', title: '🏫 Trường THCS và THPT Trần Đại Nghĩa', sub: '53 Nguyễn Du · TP. Hồ Chí Minh', query: ['Trường THCS và THPT Trần Đại Nghĩa', 'Taberd school'] },
   { id: 'namky', title: '🔥 Đường Nam Kỳ Khởi Nghĩa', src: namKy.naming.image },
 ]
 
@@ -42,7 +42,7 @@ export default function ChoiceModal({ onPick }: { onPick: (p: Pick) => void }) {
               <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1 select-none font-display text-5xl font-bold leading-none text-gold/40 md:text-6xl">{String(i + 1).padStart(2, '0')}</span>
               <div className="p-3 pl-16 md:p-4 md:pl-4">
                 <div className="font-serif text-xl font-bold tracking-[0.02em] text-gold">{r.title}</div>
-                <div className="text-sm text-paper/75">TP. Hồ Chí Minh</div>
+                <div className="text-sm text-paper/75">{r.sub ?? 'TP. Hồ Chí Minh'}</div>
                 <div className="explore mt-2">Khám phá <ArrowRight width={16} height={16} /></div>
               </div>
             </button>

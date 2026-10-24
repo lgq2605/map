@@ -11,6 +11,7 @@ export const HomeIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path 
 export const FamilyIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><circle cx="8" cy="8" r="2.6" /><circle cx="16.5" cy="9.5" r="2.1" /><path d="M3 19c0-3.2 2.2-5 5-5s5 1.8 5 5M14 19c0-2.4 1.5-4 3.5-4s3.5 1.6 3.5 4" /></svg>
 export const PenIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z M14.5 6.5l3 3" /></svg>
 export const StarIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 17l-5.2 2.7 1-5.9-4.3-4.1 5.9-.8z" /></svg>
+export const SpeakerIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base({ fill: 'currentColor', strokeWidth: 1, ...p })}><path d="M3.5 9.5v5h3.8L13 19.2V4.8L7.3 9.5z" /></svg>
 export const UserIcon = (p: SVGProps<SVGSVGElement>) => <svg {...base(p)}><circle cx="12" cy="8" r="3.6" /><path d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6" /></svg>
 
 // Icon dòng thông tin của hồ sơ nhân vật: đổi emoji đầu dòng (🏡 👨‍👩‍👦 ✏️ ⭐) sang icon SVG mảnh.

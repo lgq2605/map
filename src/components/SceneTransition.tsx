@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { whoosh } from '../audio'
 
-// Chuyển cảnh điện ảnh: dải gradient đỏ → vàng → đỏ quét ngang màn hình (0,6s) mỗi khi đổi scene.
+// Chuyển cảnh điện ảnh: dải gradient đỏ → vàng → đỏ quét ngang màn hình (0,6s).
+// CHỈ chạy một lần khi đi từ địa cầu vào Việt Nam; các lần đổi scene khác (chọn đường, ra ngoài nhìn thành phố...) không có hiệu ứng này.
 export default function SceneTransition({ trigger }: { trigger: string }) {
-  const first = useRef(true)
+  const prev = useRef(trigger)
   const reduce = useReducedMotion()
   const [k, setK] = useState(0)
   useEffect(() => {
-    if (first.current) { first.current = false; return }
-    whoosh()
-    if (!reduce) setK(n => n + 1)
+    const from = prev.current
+    prev.current = trigger
+    if (from === 'earth' && trigger !== 'earth' && !reduce) setK(n => n + 1)
   }, [trigger])
   if (!k) return null
   return (

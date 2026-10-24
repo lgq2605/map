@@ -1,11 +1,9 @@
-import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import type { Figure } from '../data/types'
 import Visual from './Visual'
 import Highlight from './Highlight'
 import Ornament from './Ornament'
 import { CalendarIcon, iconForEmoji } from './Icons'
-import { unroll } from '../audio'
 
 // Chữ Hán/Nôm mờ làm watermark phía sau (theo tên nhân vật; không khớp thì dùng chữ "史" = sử).
 const HAN = (name: string) => name.includes('Quang Trung') ? '光中' : name.includes('Trần Đại Nghĩa') ? '陳大義' : '史'
@@ -14,7 +12,6 @@ const EMOJI = /^(\p{Extended_Pictographic}[\u200d\ufe0f\p{Extended_Pictographic}
 
 // "Hồ sơ bảo tàng": giấy cũ + chân dung khung vàng kép + tên Cinzel vàng + hoa văn; mở ra như cuộn giấy.
 export default function FigureCard({ f }: { f: Figure }) {
-  useEffect(() => { unroll() }, [])
   const [first, ...rest] = f.lines
   return (
     <motion.section initial={{ opacity: 0, scaleY: 0 }} animate={{ opacity: 1, scaleY: 1 }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} style={{ originY: 0 }}

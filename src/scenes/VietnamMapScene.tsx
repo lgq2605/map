@@ -11,7 +11,6 @@ import HCMCButton from '../components/HCMCButton'
 import NguyenHueScene from './NguyenHueScene'
 import NguyenDuScene from './NguyenDuScene'
 import NamKyScene from './NamKyScene'
-import { tick } from '../audio'
 
 const FOCUS: Record<string, { c: L.LatLngTuple; z: number }> = {
   menu: { c: [16, 107.8], z: 5 }, hcm: { c: [10.7777, 106.7009], z: 14 },
@@ -139,8 +138,7 @@ function fitView(m: L.Map, pts: L.LatLngTuple[], maxZ: number, rightPad = 0): { 
 // (tooltip) nên không che bản đồ. Riêng TP.HCM ở màn toàn quốc có nhãn chữ nhỏ cố định.
 const dot = (red = false) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="mk-dot ${red ? 'red' : ''}"></div>` })
 const mark = (at: L.LatLngExpression, label: string, o: { red?: boolean; permanent?: boolean } = {}) =>
-  L.marker(at, { icon: dot(o.red), title: label }).bindTooltip(label, { direction: 'top', offset: [0, -8], permanent: !!o.permanent }).on('click', tick)
-
+  L.marker(at, { icon: dot(o.red), title: label }).bindTooltip(label, { direction: 'top', offset: [0, -8], permanent: !!o.permanent })
 // Ghim trường học: CHỈ LOGO của Trường THCS và THPT Trần Đại Nghĩa (logo chính thức),
 // không kèm chữ tên trường hay địa chỉ. Nền tròn xanh đêm + viền vàng cho nổi trên bản đồ.
 const schoolIcon = () => L.divIcon({
@@ -314,7 +312,7 @@ export default function VietnamMapScene({ scene, setScene }: { scene: Scene; set
         const sc = scene as RoadScene
         highlight(g, sc, r)
         if (sc === 'hue') mark(FOCUS.hue.c, 'Đường Nguyễn Huệ').addTo(g)
-        if (sc === 'du') L.marker(SCHOOL_POS, { icon: schoolIcon(), zIndexOffset: 1000 }).on('click', tick).addTo(g)
+        if (sc === 'du') L.marker(SCHOOL_POS, { icon: schoolIcon(), zIndexOffset: 1000 }).addTo(g)
         const mid = sc === 'namky' ? roadMiddle(r, ROAD_NAMKY) : null
         if (mid) mark(mid, 'Đường Nam Kỳ Khởi Nghĩa', { red: true }).addTo(g)
       }

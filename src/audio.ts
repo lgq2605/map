@@ -3,7 +3,6 @@ let ctx: AudioContext | null = null
 let master: GainNode
 let timer: number | undefined
 let on = false
-let sfxOn = false
 const subs = new Set<() => void>()
 const PENTA = [293.66, 329.63, 369.99, 440, 493.88, 587.33, 659.25] // D–E–F#–A–B: âm giai ngũ cung
 
@@ -20,7 +19,7 @@ function init() {
     const g = ctx.createGain(); g.gain.value = 0.12
     o.connect(g); g.connect(master); o.start()
   }
-  document.addEventListener('visibilitychange', () => { document.hidden ? ctx?.suspend() : (on || sfxOn) && ctx?.resume() })
+  document.addEventListener('visibilitychange', () => { document.hidden ? ctx?.suspend() : on && ctx?.resume() })
 }
 
 function pluck() {
@@ -57,56 +56,3 @@ export function drum() {
 export const isMusicOn = () => on
 export const subscribeMusic = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
 
-// ───────── Hiệu ứng âm thanh (SFX): mặc định TẮT, bật riêng bằng nút SFX ─────────
-// Mọi hàm đều tự thoát nếu SFX đang tắt, nên gọi ở đâu cũng an toàn.
-export function setSfx(v: boolean) {
-  init()
-  sfxOn = v
-  if (v) ctx!.resume()
-  subs.forEach(f => f())
-}
-export const isSfxOn = () => sfxOn
-
-function noise(c: AudioContext, dur: number) {
-  const b = c.createBuffer(1, Math.max(1, Math.floor(c.sampleRate * dur)), c.sampleRate)
-  const d = b.getChannelData(0)
-  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
-  const s = c.createBufferSource(); s.buffer = b
-  return s
-}
-// Chuyển cảnh: tiếng "vút" (nhiễu lọc quét tần số)
-export function whoosh() {
-  if (!sfxOn || !ctx) return
-  try {
-    const c = ctx, t = c.currentTime
-    const s = noise(c, 0.7), f = c.createBiquadFilter(), g = c.createGain()
-    f.type = 'bandpass'; f.Q.value = 1.2
-    f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(3200, t + 0.5)
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.16, t + 0.18); g.gain.exponentialRampToValueAtTime(0.001, t + 0.65)
-    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t); s.stop(t + 0.7)
-  } catch { /* trình duyệt không hỗ trợ: bỏ qua */ }
-}
-// Mở hồ sơ nhân vật: tiếng giấy cuộn mở ra
-export function unroll() {
-  if (!sfxOn || !ctx) return
-  try {
-    const c = ctx, t = c.currentTime
-    const s = noise(c, 0.9), f = c.createBiquadFilter(), g = c.createGain()
-    f.type = 'highpass'; f.frequency.value = 1800
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09, t + 0.1)
-    for (let i = 1; i < 7; i++) g.gain.linearRampToValueAtTime(0.03 + Math.random() * 0.07, t + i * 0.11)
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.85)
-    s.connect(f); f.connect(g); g.connect(c.destination); s.start(t); s.stop(t + 0.9)
-  } catch { /* bỏ qua */ }
-}
-// Bấm marker: tiếng "tích" nhỏ
-export function tick() {
-  if (!sfxOn || !ctx) return
-  try {
-    const c = ctx, t = c.currentTime
-    const o = c.createOscillator(), g = c.createGain()
-    o.type = 'sine'; o.frequency.setValueAtTime(1400, t); o.frequency.exponentialRampToValueAtTime(900, t + 0.06)
-    g.gain.setValueAtTime(0.09, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.09)
-  } catch { /* bỏ qua */ }
-}

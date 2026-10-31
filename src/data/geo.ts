@@ -45,6 +45,18 @@ export const FALLBACK_NAMKY: LL[] = [[10.769143, 106.701944], [10.775821, 106.69
 // sáng chạy liền suốt con đường (chỉ vẽ khi đã có dữ liệu OSM; đường dự phòng đã gồm sẵn khúc này).
 export const NAMKY_FILL: LL[] = [[10.779567, 106.695], [10.780475, 106.694023], [10.781473, 106.692943]]
 
+// Vị trí logo/Street View của trường (53 Nguyễn Du), do người dùng chỉ định trên bản đồ.
+export const SCHOOL_POS: LL = [10.7792138, 106.7010202]
+
+// Điểm đặt Street View (heading = hướng nhìn, độ, 0 = Bắc). Đặt đúng TRÊN trục đường để Google chọn ảnh của chính con đường đó
+// (trước đây điểm Nguyễn Huệ lệch ~30 m sang phía Mạc Thị Bưởi nên Street View mở ở đó).
+// - Nguyễn Huệ: giữa phố đi bộ (trung điểm FALLBACK_HUE), nhìn dọc phố về phía sông Sài Gòn.
+// - Nam Kỳ Khởi Nghĩa: đoạn trước Dinh Độc Lập (đỉnh giữa NAMKY_FILL), nhìn về phía cổng Dinh.
+// - Trường: toạ độ ghim trường; Google tự chọn ảnh gần nhất.
+export const SV_HUE = { ll: [10.77411, 106.703619] as LL, heading: 136 }
+export const SV_NAMKY = { ll: [10.780475, 106.694023] as LL, heading: 223 }
+export const SV_SCHOOL = { ll: SCHOOL_POS, heading: 0 }
+
 // Chuyển kết quả Overpass thành dữ liệu dùng được (tách riêng để dễ kiểm thử)
 export function parseOverpass(json: any): GeoResult {
   const roads: Road[] = []

@@ -3,7 +3,7 @@ import tdnPortrait from '../assets/tran-dai-nghia.jpg'
 // Ảnh tìm trên Wikimedia Commons theo `query` (chuỗi hoặc danh sách dự phòng: từ khoá nào
 // không ra ảnh thì tự chuyển sang từ khoá kế tiếp). Các từ khoá đã được thử nghiệm đều có ảnh.
 export const nguyenDu: LocationData = {
-  title: 'Đường Nguyễn Du',
+  title: 'Trường THCS và THPT Trần Đại Nghĩa',
   milestones: [
     { year: 'Năm 1874', text: 'Trường thành lập bởi Cha sở Henri De Kerlan, chính thức đi vào hoạt động năm 1875 với tên gọi ban đầu là Trường Lasan Taberd. Mục đích ban đầu: nuôi dưỡng trẻ mồ côi lai Pháp và lai Âu.', visual: 'Trường Taberd xưa', query: ['Taberd Institution Saigon', 'Institution Taberd', 'Taberd school'] },
     { year: 'Năm 1976', text: 'Trường Lasan Taberd được bàn giao lại cho ngành giáo dục TP.HCM. Nơi đây từng được chuyển đổi công năng thành Trường Trung học Sư phạm nhằm đào tạo giáo viên tiểu học cho thành phố.', visual: 'Ảnh tư liệu', query: ['Taberd school', 'Lasan Taberd', 'Institution Taberd'] },

@@ -38,26 +38,31 @@ function find(q: string, tries = 2): Promise<Img | null> {
 
 // Nhận MỘT chuỗi tìm kiếm hoặc DANH SÁCH chuỗi dự phòng: từ khoá nào không ra ảnh (hoặc ảnh hỏng
 // không tải được) thì tự chuyển sang từ khoá kế tiếp, tới khi hết mới hiện khung chữ thay ảnh.
-export function useCommonsImage(query?: string | string[], src?: string) {
+export function useCommonsImage(query?: string | string[], src?: string, enabled = true) {
   const queries = Array.isArray(query) ? query : query ? [query] : []
   const key = queries.join('\u0001')
   const [i, setI] = useState(0)
   const [img, setImg] = useState<Img | null>(src ? { url: src } : null)
+  // `loading`: đang chờ kết quả (hiện vòng tải thay vì khung chữ báo lỗi)
+  const [loading, setLoading] = useState(!src && !!key)
   useEffect(() => { setI(0) }, [key, src])
   useEffect(() => {
-    if (src) { setImg({ url: src }); return }
+    if (src) { setImg({ url: src }); setLoading(false); return }
     const qs = key ? key.split('\u0001') : []
-    if (i >= qs.length) { setImg(null); return }
+    if (i >= qs.length) { setImg(null); setLoading(false); return }
+    // Tải lười: chưa vào khung nhìn (enabled = false) thì chưa gọi mạng
+    if (!enabled) return
     let on = true
+    setLoading(true)
     find(qs[i]).then(r => {
       if (!on) return
-      if (r) setImg(r)
+      if (r) { setImg(r); setLoading(false) }
       else if (i + 1 < qs.length) setI(i + 1) // từ khoá này không có ảnh: thử từ khoá dự phòng
-      else setImg(null)
+      else { setImg(null); setLoading(false) }
     })
     return () => { on = false }
-  }, [i, key, src])
+  }, [i, key, src, enabled])
   const total = key ? key.split('\u0001').length : 0
   // Ảnh hiện ra mà không tải được (onError ở <img>): chuyển từ khoá dự phòng kế tiếp
-  return { img, fail: () => setI(i + 1), canFail: i + 1 < total }
+  return { img, fail: () => setI(i + 1), canFail: i + 1 < total, loading }
 }

@@ -1,5 +1,14 @@
-// Nút về bản đồ toàn quốc (hiện từ màn TP.HCM trở vào trong) —
-// kiểu dáng khiêm tốn, mờ nhạt để không nổi bật hơn nội dung chính.
+import Tooltip from './Tooltip'
+import { GlobeIcon } from './Icons'
+
+// Nút về bản đồ toàn quốc (hiện từ màn TP.HCM trở vào trong): viên thuốc nền đặc, rê chuột → địa cầu xoay 360°.
 export default function BackToVietnamButton({ onClick }: { onClick: () => void }) {
-  return <button onClick={onClick} className="rounded-full border border-paper/20 bg-navy/50 px-3.5 py-2 text-xs text-paper/70 backdrop-blur transition duration-200 hover:border-paper/40 hover:text-paper md:text-sm">🌏 Toàn cảnh Việt Nam</button>
+  return (
+    <Tooltip label="Quay về bản đồ Việt Nam" pos="below">
+      <button onClick={onClick} className="glass-pill group flex min-h-11 items-center gap-2 rounded-full px-4 py-2 text-xs md:text-sm">
+        <GlobeIcon className="text-gold transition-transform duration-700 group-hover:rotate-[360deg]" width={18} height={18} />
+        Toàn cảnh Việt Nam
+      </button>
+    </Tooltip>
+  )
 }

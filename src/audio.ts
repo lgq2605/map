@@ -55,3 +55,4 @@ export function drum() {
 
 export const isMusicOn = () => on
 export const subscribeMusic = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
+

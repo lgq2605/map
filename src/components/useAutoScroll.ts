@@ -26,26 +26,3 @@ export function useFollowScroll(step: number) {
   }, [])
   return { box, inner }
 }
-
-// Bảng một trang (Nam Kỳ Khởi Nghĩa): sau khi mở, tự cuộn xuống chậm như tốc độ đọc.
-// Chạm/lăn chuột là dừng. Màn hình rộng đã thấy hết nội dung thì không cuộn.
-export function useReadingScroll(pxPerSec = 28, delayMs = 2500) {
-  const box = useRef<HTMLElement>(null)
-  useEffect(() => {
-    const b = box.current
-    if (!b) return
-    let on = true, raf = 0, last = 0, y = 0
-    const tick = (t: number) => {
-      if (!on) return
-      const max = b.scrollHeight - b.clientHeight
-      y = Math.min(max, y + pxPerSec * (last ? (t - last) / 1000 : 0))
-      last = t
-      b.scrollTop = y
-      if (y < max - 1) raf = requestAnimationFrame(tick)
-    }
-    const timer = setTimeout(() => { y = b.scrollTop; raf = requestAnimationFrame(tick) }, delayMs)
-    const off = onUserScroll(b, () => { on = false })
-    return () => { on = false; clearTimeout(timer); cancelAnimationFrame(raf); off() }
-  }, [])
-  return box
-}

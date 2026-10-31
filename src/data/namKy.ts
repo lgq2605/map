@@ -6,6 +6,9 @@ import tank1975 from '../assets/tank-1975.jpg'
 export const namKy = {
   title: 'Đường Nam Kỳ Khởi Nghĩa',
   origin: 'Con đường này từng mang nhiều tên qua từng thời kỳ: đường số 26 từ thời Pháp quy hoạch đô thị Sài Gòn (thế kỷ 19), đường Impératrice (1865), đường Mac Mahon (1870); năm 1938 được nối dài tới sân bay Tân Sơn Nhất và từ năm 1955 mang tên đường Công Lý. Tên gọi hiện tại — Nam Kỳ Khởi Nghĩa — được chọn để tưởng nhớ cuộc Khởi nghĩa Nam Kỳ bùng nổ ngày 23/11/1940: một trong những cuộc nổi dậy vũ trang lớn nhất của đồng bào Nam Bộ chống thực dân Pháp và phát xít Nhật, do Đảng Cộng sản Đông Dương chủ trương và lãnh đạo.',
+  // Ảnh minh hoạ cho từng phần (tìm trên Wikimedia Commons theo danh sách từ khoá dự phòng, như 2 địa điểm kia)
+  originImg: { caption: 'Đường Nam Kỳ Khởi Nghĩa (xưa là đường Mac Mahon, đường Công Lý) ở Sài Gòn', query: ['Rue Mac Mahon Saigon', 'rue Mac-Mahon Saïgon', 'Nam Kỳ Khởi Nghĩa street', 'Saigon Nam Ky Khoi Nghia'] },
+  factsImg: { caption: 'Tư liệu về Khởi nghĩa Nam Kỳ (1940)', query: ['Khởi nghĩa Nam Kỳ 1940', 'Nam Kỳ khởi nghĩa', 'Cochinchina uprising 1940', 'Nam Ky uprising'] },
   facts: [
     ['Thời gian', 'Đêm 22 rạng sáng ngày 23 tháng 11 năm 1940.'],
     ['Địa bàn', 'Nổ ra đồng loạt tại nhiều tỉnh thuộc Nam Kỳ — như Mỹ Tho, Cần Thơ, Sóc Trăng, Bạc Liêu, Trà Vinh, Gia Định... (Nam Bộ ngày nay).'],
